@@ -78,6 +78,11 @@ endif()
 enable_testing()
 add_subdirectory(test)
 
+###
+### C-Wrapper
+###
+
+add_subdirectory(wrapper)
 
 ###
 ### Applications
