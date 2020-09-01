@@ -66,8 +66,6 @@ public:
 
   TLS_SERIALIZABLE(_cred)
   TLS_TRAITS(tls::variant<CredentialType>)
-
-private:
   std::variant<BasicCredential> _cred;
 };
 

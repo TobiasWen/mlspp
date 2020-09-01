@@ -144,8 +144,6 @@ public:
 
   TLS_SERIALIZABLE(_data)
   TLS_TRAITS(tls::vector<2>)
-
-private:
   SignatureScheme _scheme;
   bytes _data;
 };
@@ -165,8 +163,6 @@ public:
 
   TLS_SERIALIZABLE(_scheme, _data, _pub_data)
   TLS_TRAITS(tls::pass, tls::vector<2>, tls::vector<2>)
-
-private:
   CipherSuite _suite;
   SignatureScheme _scheme;
   bytes _data;
