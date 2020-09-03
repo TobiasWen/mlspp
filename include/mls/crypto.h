@@ -121,11 +121,10 @@ public:
 
   TLS_SERIALIZABLE(_data, _pub_data)
   TLS_TRAITS(tls::vector<2>, tls::vector<2>)
-
-private:
   bytes _data;
   bytes _pub_data;
 
+  HPKEPrivateKey();
   HPKEPrivateKey(CipherSuite suite, bytes data);
 };
 

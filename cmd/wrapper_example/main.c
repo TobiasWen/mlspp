@@ -15,5 +15,6 @@ int main(int argc, const char* argv[])
     char name[] = "Alice";
     uint32_t length = strlen(name);
     struct mls_credential credential = mls_create_basic_credential((uint8_t*) &name[0], length, pub_key);
-	helloC("Tdadadadest123\n");
+    struct mls_HPKE_private_key init_key = mls_derive_HPKE_private_key(suite, (uint8_t*) &name[0], length);
+    helloC("Test\n");
 };

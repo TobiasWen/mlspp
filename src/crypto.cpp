@@ -412,6 +412,8 @@ HPKEPrivateKey::HPKEPrivateKey(CipherSuite suite, bytes data)
   , _pub_data(primitive::priv_to_pub(suite, _data))
 {}
 
+HPKEPrivateKey::HPKEPrivateKey() = default;
+
 ///
 /// SignaturePublicKey and SignaturePrivateKey
 ///
