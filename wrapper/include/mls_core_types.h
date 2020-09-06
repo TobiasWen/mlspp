@@ -24,16 +24,16 @@ struct mls_extension {
 };
 
 struct mls_extension_list {
-    mls_extension *extensions;
+    struct mls_extension *extensions;
     size_t extensions_size;
 };
 
 struct mls_key_package {
     mls_protocol_version version;
     mls_cipher_suite cipher_suite;
-    mls_HPKE_public_key init_key;
-    mls_credential credential;
-    mls_extension_list extensions;
+    struct mls_HPKE_public_key init_key;
+    struct mls_credential credential;
+    struct mls_extension_list extensions;
     uint8_t *signature;
     uint32_t signature_size;
 };

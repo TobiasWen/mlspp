@@ -1,7 +1,9 @@
 #include "mls_common.h"
 #include "mls_crypto.h"
 #include "mls_credential.h"
+#include "mls_primitives.h"
 #include "string.h"
+#include "stdio.h"
 
 struct user {
     
@@ -14,6 +16,8 @@ int main(int argc, const char* argv[])
     struct mls_signature_public_key pub_key = mls_get_signature_public_key_from_private_key(priv_key);
     char name[] = "Alice";
     uint32_t length = strlen(name);
+    struct mls_random_bytes init_secret = mls_generate_random_bytes(32);
+    // TODO: Maybe create struct mls_bytes and implement it.
     struct mls_credential credential = mls_create_basic_credential((uint8_t*) &name[0], length, pub_key);
     struct mls_HPKE_private_key init_key = mls_derive_HPKE_private_key(suite, (uint8_t*) &name[0], length);
     helloC("Test\n");
