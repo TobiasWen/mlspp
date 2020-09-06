@@ -1,3 +1,4 @@
+#include "string.h"
 #include "mls_crypto.h"
 #include "mls/crypto.h"
 
@@ -13,6 +14,14 @@ struct mls_signature_public_key mls_get_signature_public_key_from_private_key(st
     wrapped_pub.data = (uint8_t*)&mls_pub._data[0];
     wrapped_pub.data_size = mls_pub._data.size();
     return wrapped_pub;
+}
+
+bool mls_get_signature_public_key_from_private_key_test(struct mls_signature_private_key private_key, struct mls_signature_public_key *result) {
+    mls::SignaturePublicKey mls_pub = mls_convert_to_signature_private_key(private_key).public_key();
+    result->signature_scheme = static_cast<mls_signature_scheme>(mls_pub.signature_scheme());
+    memcpy(result->data, private_key.data, 64);
+    result->data_size = mls_pub._data.size();
+    return true;
 }
 
 struct mls_HPKE_private_key mls_derive_HPKE_private_key(mls_cipher_suite suite, uint8_t *secret, size_t secret_size) {

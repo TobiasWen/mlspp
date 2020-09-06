@@ -1,6 +1,7 @@
 #pragma once
 #include "mls_common.h"
 #include "stddef.h"
+#include "stdbool.h"
 #ifdef __cplusplus
 #include "mls/crypto.h"
 extern "C" {
@@ -8,10 +9,8 @@ extern "C" {
 struct mls_signature_private_key {
     mls_cipher_suite cipher_suite;
     mls_signature_scheme signature_scheme;
-    uint8_t *data;
-    uint32_t data_size;
-    uint8_t *pub_data;
-    uint32_t pub_data_size;
+    uint8_t data[64];
+    uint8_t pub_data[32];
 };
 
 struct mls_signature_public_key {
@@ -33,6 +32,7 @@ struct mls_HPKE_private_key {
 };
 
 struct mls_signature_private_key mls_generate_mls_signature_private_key(mls_cipher_suite suite);
+bool mls_get_signature_public_key_from_private_key_test(struct mls_signature_private_key private_key, struct mls_signature_public_key *result);
 struct mls_signature_public_key mls_get_signature_public_key_from_private_key(struct mls_signature_private_key private_key);
 struct mls_HPKE_private_key mls_derive_HPKE_private_key(mls_cipher_suite suite, uint8_t *secret, size_t secret_size);
 
