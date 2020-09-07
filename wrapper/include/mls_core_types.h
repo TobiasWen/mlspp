@@ -1,8 +1,11 @@
 #pragma once
+
 #include "mls_common.h"
 #include "mls_crypto.h"
 #include "mls_credential.h"
+
 #ifdef __cplusplus
+#include "mls/core_types.h"
 extern "C" {
 #endif
 typedef enum {
@@ -38,7 +41,11 @@ struct mls_key_package {
     uint32_t signature_size;
 };
 
+struct mls_key_package mls_create_key_package(mls_cipher_suite suite,
+                                              struct mls_HPKE_public_key HPKE_public_key,
+                                              struct mls_credential credential,
+                                              struct mls_signature_private_key signature_private_key);
 #ifdef __cplusplus
-
+struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_list);
 }
 #endif

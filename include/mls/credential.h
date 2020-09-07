@@ -34,7 +34,7 @@ struct BasicCredential
   bytes identity;
   SignaturePublicKey public_key;
 
-  static const CredentialType type;
+  static CredentialType type;
 };
 
 tls::ostream&

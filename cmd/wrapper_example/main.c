@@ -20,5 +20,12 @@ int main(int argc, const char* argv[])
     // TODO: Maybe create struct mls_bytes and implement it.
     struct mls_credential credential = mls_create_basic_credential((uint8_t*) &name[0], length, pub_key);
     struct mls_HPKE_private_key init_key = mls_derive_HPKE_private_key(suite, (uint8_t*) &name[0], length);
+    struct mls_HPKE_public_key hpke_pub_key = {0};
+    hpke_pub_key.data = init_key.pub_data;
+    hpke_pub_key.data_size = init_key.pub_data_size;
+    struct mls_key_package kp = mls_create_key_package(suite, hpke_pub_key, credential, priv_key);
+    for(int i = 0; i < kp.extensions.extensions_size; i++) {
+        printf("Extension from %d is %u \n", i, (kp.extensions.extensions + i)->type);
+    }
     helloC("Test\n");
 };

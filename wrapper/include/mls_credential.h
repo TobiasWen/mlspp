@@ -25,5 +25,6 @@ struct mls_credential {
 struct mls_credential mls_create_basic_credential(uint8_t *identity, uint32_t identity_size, struct mls_signature_public_key public_key);
 #ifdef __cplusplus
 struct mls_credential mls_from_credential(mls::Credential cred);
+mls::Credential mls_to_credential(struct mls_credential cred);
 }
 #endif

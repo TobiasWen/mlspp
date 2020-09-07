@@ -19,3 +19,15 @@ struct mls_credential mls_from_credential(mls::Credential cred) {
     credential.cred = basic_credential;
     return credential;
 }
+
+mls::Credential mls_to_credential(struct mls_credential cred) {
+    mls::Credential credential = mls::Credential{};
+    mls::BasicCredential basic_credential = mls::BasicCredential();
+    basic_credential.public_key = mls_convert_to_signature_public_key(cred.cred.public_key);
+    mls::bytes mls_identity(cred.cred.identity, cred.cred.identity + cred.cred.identity_size);
+    basic_credential.identity = mls_identity;
+    mls::BasicCredential::type = (mls::CredentialType) cred.cred.type;
+    std::variant<mls::BasicCredential> mls_cred = basic_credential;
+    credential._cred = mls_cred;
+    return credential;
+}

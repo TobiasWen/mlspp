@@ -7,7 +7,7 @@ namespace mls {
 /// BasicCredential
 ///
 
-const CredentialType BasicCredential::type = CredentialType::basic;
+CredentialType BasicCredential::type = CredentialType::basic;
 
 tls::ostream&
 operator<<(tls::ostream& str, const BasicCredential& obj)
