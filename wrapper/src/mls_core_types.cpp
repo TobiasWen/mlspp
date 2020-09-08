@@ -33,11 +33,5 @@ struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_l
     }
     ext_list.extensions = extensions;
     ext_list.extensions_size = extension_list.extensions.size();
-
-    for(int i = 0; i < ext_list.extensions_size; i++) {
-        printf("Extension from %d is %u \n", i, (ext_list.extensions + i)->type);
-        //printf("Extension from %d is %u \n", i, (*(struct mls_extension*)(ext_list.extensions + i * sizeof(*ext_list.extensions))).type);
-    }
-    printf("-----------------\n");
     return ext_list;
 }
