@@ -26,6 +26,11 @@ struct mls_extension {
     uint32_t data_size;
 };
 
+struct mls_bytes {
+    uint8_t *data;
+    size_t size;
+};
+
 struct mls_extension_list {
     struct mls_extension *extensions;
     size_t extensions_size;
@@ -47,5 +52,6 @@ struct mls_key_package mls_create_key_package(mls_cipher_suite suite,
                                               struct mls_signature_private_key signature_private_key);
 #ifdef __cplusplus
 struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_list);
+mls::KeyPackage mls_to_key_package(struct mls_key_package key_package);
 }
 #endif

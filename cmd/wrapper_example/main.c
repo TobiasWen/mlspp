@@ -4,6 +4,7 @@
 #include "mls_primitives.h"
 #include "mls_session.h"
 #include "string.h"
+#include "mls_util.h"
 
 const mls_cipher_suite suite = X25519_AES128GCM_SHA256_Ed25519;
 
@@ -38,8 +39,12 @@ int main(int argc, const char* argv[])
 
     // Alice starts a session with Bob
     struct mls_init_info info_a = mls_temp_init_info(suite, alice.identity_priv, alice.credential);
-    uint8_t group_id[4] = {0, 1, 2, 3};
-
+    struct mls_bytes group_id = {.data = {0, 1, 2, 3}, .size = 4};
+    // TODO: die random_bytes wurden von der mls lib nicht auf dem heap allokiert. Potentiell andere Stellen finden
+    // wo das nicht der fall ist.
+    struct mls_bytes rand_bytes = mls_generate_random_bytes(32);
+    printUint8Array(rand_bytes.data, rand_bytes.size, "Test!");
+    struct mls_session_welcome_tuple session_welcome = mls_session_start(group_id, &info_a, 1, &kpB, 1, rand_bytes);
     /*struct mls_signature_private_key priv_key = mls_generate_mls_signature_private_key(suite);
     struct mls_signature_public_key pub_key = mls_get_signature_public_key_from_private_key(priv_key);
     char name[] = "Alice";

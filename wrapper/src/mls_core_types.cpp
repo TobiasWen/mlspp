@@ -35,3 +35,29 @@ struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_l
     ext_list.extensions_size = extension_list.extensions.size();
     return ext_list;
 }
+
+mls::ExtensionList mls_to_extension_list(struct mls_extension_list extensions) {
+    mls::ExtensionList mls_extensions = *new mls::ExtensionList();
+    for(int i = 0; i < extensions.extensions_size; i++) {
+        auto extension = *new mls::Extension();
+        extension.type = (mls::ExtensionType) extensions.extensions[i].type;
+        extension.data = mls::bytes(extensions.extensions[i].data, extensions.extensions[i].data + extensions.extensions[i].data_size);
+        mls_extensions.extensions.push_back(extension);
+    }
+    return mls_extensions;
+}
+
+mls::KeyPackage mls_to_key_package(struct mls_key_package key_package) {
+    auto *package = new mls::KeyPackage();
+    mls::HPKEPublicKey init_key = mls_convert_to_HPKE_public_key(key_package.init_key);
+    mls::Credential credential = mls_to_credential(key_package.credential);
+    mls::ExtensionList extensions = mls_to_extension_list(key_package.extensions);
+    mls::bytes signature(key_package.signature, key_package.signature + key_package.signature_size);
+    package->version = (mls::ProtocolVersion) key_package.version;
+    package->cipher_suite = (mls::CipherSuite) key_package.cipher_suite;
+    package->init_key = init_key;
+    package->credential = credential;
+    package->extensions = extensions;
+    package->signature = signature;
+    return *package;
+}
