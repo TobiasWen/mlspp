@@ -1,23 +1,37 @@
 #include "mls_credential.h"
 #include "mls/crypto.h"
 
-struct mls_credential mls_create_basic_credential(uint8_t *identity, uint32_t identity_size, struct mls_signature_public_key public_key) {
-    mls::bytes mls_identity(identity, identity + identity_size);
-    mls::SignaturePublicKey mls_pub_key = mls_convert_to_signature_public_key(public_key);
-    mls::Credential basic_cred = mls::Credential::basic(mls_identity, mls_pub_key);
-    return mls_from_credential(basic_cred);
+bool mls_create_basic_credential(struct mls_credential *target, mls_bytes *identity, struct mls_signature_public_key *public_key) {
+    if(target != nullptr && identity != nullptr && public_key != nullptr) {
+        mls::bytes mls_identity(identity->data, identity->data + identity->size);
+        mls::SignaturePublicKey mls_pub_key;
+        mls_convert_to_signature_public_key(&mls_pub_key, public_key);
+        mls::Credential basic_cred = mls::Credential::basic(mls_identity, mls_pub_key);
+        mls_from_credential(target, &basic_cred);
+        return true;
+    } else {
+        return false;
+    }
 }
 
-struct mls_credential mls_from_credential(mls::Credential cred) {
-    struct mls_credential credential = {nullptr};
-    struct mls_basic_credential basic_credential = {nullptr};
-    mls::BasicCredential mls_basic_credential = std::get<mls::BasicCredential>(cred._cred);
-    basic_credential.public_key = mls_convert_from_signature_public_key(mls_basic_credential.public_key);
-    basic_credential.identity = (uint8_t*) &mls_basic_credential.identity[0];
-    basic_credential.identity_size = mls_basic_credential.identity.size();
-    basic_credential.type = static_cast<mls_credential_type>(mls::BasicCredential::type); //TODO: Does this work?
-    credential.cred = basic_credential;
-    return credential;
+bool mls_from_credential(struct mls_credential *target, mls::Credential *src) {
+    if(target != nullptr && src != nullptr) {
+        mls_from_basic_credential(&target->cred, &std::get<mls::BasicCredential>(src->_cred));
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_from_basic_credential(struct mls_basic_credential *target, mls::BasicCredential *src) {
+    if(target != nullptr && src != nullptr) {
+        mls_from_bytes(&target->identity, &src->identity);
+        mls_convert_from_signature_public_key(&target->public_key, &src->public_key);
+        target->type = (mls_credential_type) src->type;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 mls::Credential mls_to_credential(struct mls_credential cred) {
@@ -30,4 +44,18 @@ mls::Credential mls_to_credential(struct mls_credential cred) {
     std::variant<mls::BasicCredential> mls_cred = basic_credential;
     credential._cred = mls_cred;
     return credential;
+}
+
+bool mls_to_credential(mls::Credential *target, struct mls_credential *src) {
+    if(target != nullptr && src != nullptr) {
+        mls::BasicCredential credential = std::get<mls::BasicCredential>(target->_cred);
+        
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_to_basic_credential(mls::BasicCredential *target, struct mls_basic_credential *src) {
+
 }
