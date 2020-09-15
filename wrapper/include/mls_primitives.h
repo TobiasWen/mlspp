@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-struct mls_bytes mls_generate_random_bytes(size_t size);
+bool mls_generate_random_bytes(struct mls_bytes *target, size_t size);
 #ifdef __cplusplus
 
 }

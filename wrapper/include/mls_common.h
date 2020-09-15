@@ -1,5 +1,8 @@
 #pragma once
-#include "stdint.h"
+
+#include <cstdlib>
+#include <cstdint>
+#include <mls/common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,7 +26,15 @@ typedef enum
     Ed448 = 0x0808,
 } mls_signature_scheme;
 
+struct mls_bytes {
+    uint8_t *data;
+    size_t size;
+};
+
+bool mls_create_bytes(struct mls_bytes *target, uint8_t *data, size_t size);
 void helloC(char name[]);
 #ifdef __cplusplus
+bool mls_from_bytes(struct mls_bytes *target, mls::bytes *origin);
+bool mls_to_bytes(mls::bytes *target, struct mls_bytes *origin);
 }
 #endif
