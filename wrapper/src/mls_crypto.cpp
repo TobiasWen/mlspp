@@ -1,9 +1,12 @@
+#include <cstring>
 #include "mls_crypto.h"
 #include "mls/crypto.h"
+#include "mls_util.h"
 
 mls_signature_private_key mls_generate_mls_signature_private_key(mls_cipher_suite suite) {
     auto priv = mls::SignaturePrivateKey::generate(static_cast<mls::CipherSuite>(suite));
-    return mls_convert_from_signature_private_key(priv);
+    struct mls_signature_private_key priv_key = mls_convert_from_signature_private_key(priv);
+    return priv_key;
 }
 
 struct mls_signature_public_key mls_get_signature_public_key_from_private_key(struct mls_signature_private_key private_key) {
@@ -25,12 +28,17 @@ struct mls_HPKE_private_key mls_derive_HPKE_private_key(mls_cipher_suite suite, 
 
 mls_signature_private_key mls_convert_from_signature_private_key(const mls::SignaturePrivateKey private_key) {
     struct mls_signature_private_key key{};
+    uint8_t *priv_data = (uint8_t*) malloc(private_key._data.size() * sizeof(*priv_data));
+    uint8_t *pub_data = (uint8_t*) malloc(private_key._pub_data.size() * sizeof(*pub_data));
+    memcpy(priv_data, (uint8_t*)&private_key._data[0], private_key._data.size() * sizeof(*priv_data));
+    memcpy(pub_data, (uint8_t*)&private_key._pub_data[0], private_key._pub_data.size() * sizeof(*pub_data));
     key.signature_scheme = static_cast<mls_signature_scheme>(private_key._scheme);
     key.cipher_suite = static_cast<mls_cipher_suite>(private_key._suite);
-    key.data = (uint8_t*)&private_key._data[0];
+    key.data = priv_data;
     key.data_size = private_key._data.size();
-    key.pub_data = (uint8_t*)&private_key._pub_data[0];
+    key.pub_data = pub_data;
     key.pub_data_size = private_key._pub_data.size();
+    bool heaptwo = is_heap_var((uint8_t*)&private_key._pub_data[0]);
     return key;
 }
 

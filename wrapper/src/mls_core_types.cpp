@@ -1,3 +1,4 @@
+#include <cstring>
 #include "mls_core_types.h"
 #include "mls/core_types.h"
 
@@ -36,6 +37,16 @@ struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_l
     return ext_list;
 }
 
+struct mls_bytes mls_create_bytes(uint8_t *data, size_t size) {
+    size_t size_bytes = size * sizeof(*data);
+    uint8_t *heap_data = (uint8_t*) malloc(size_bytes);
+    memcpy(heap_data, data, size_bytes);
+    struct mls_bytes bytes = {};
+    bytes.data = heap_data;
+    bytes.size = size;
+    return bytes;
+}
+
 mls::ExtensionList mls_to_extension_list(struct mls_extension_list extensions) {
     mls::ExtensionList mls_extensions = *new mls::ExtensionList();
     for(int i = 0; i < extensions.extensions_size; i++) {
@@ -60,4 +71,8 @@ mls::KeyPackage mls_to_key_package(struct mls_key_package key_package) {
     package->extensions = extensions;
     package->signature = signature;
     return *package;
+}
+
+struct mls_bytes mls_from_bytes(mls::bytes bytes) {
+    return mls_create_bytes((uint8_t*)&bytes[0], bytes.size());
 }

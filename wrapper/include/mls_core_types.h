@@ -50,8 +50,10 @@ struct mls_key_package mls_create_key_package(mls_cipher_suite suite,
                                               struct mls_HPKE_public_key HPKE_public_key,
                                               struct mls_credential credential,
                                               struct mls_signature_private_key signature_private_key);
+struct mls_bytes mls_create_bytes(uint8_t *data, size_t size);
 #ifdef __cplusplus
 struct mls_extension_list mls_from_extension_list(mls::ExtensionList extension_list);
 mls::KeyPackage mls_to_key_package(struct mls_key_package key_package);
+struct mls_bytes mls_from_bytes(mls::bytes bytes);
 }
 #endif
