@@ -24,11 +24,11 @@ struct mls_HPKE_public_key {
 
 struct mls_HPKE_private_key {
     struct mls_bytes data;
-    struct mls_HPKE_public_key;
+    struct mls_HPKE_public_key public_key;
 };
 
 bool mls_generate_mls_signature_private_key(struct mls_signature_private_key *target, mls_cipher_suite suite);
-bool mls_get_signature_public_key_from_private_key(struct mls_signature_public_key *target, struct mls_signature_private_key *private_key);
+//bool mls_get_signature_public_key_from_private_key(struct mls_signature_public_key *target, struct mls_signature_private_key *private_key);
 bool mls_derive_HPKE_private_key(struct mls_HPKE_private_key *target, mls_cipher_suite suite, mls_bytes *secret);
 
 #ifdef __cplusplus
