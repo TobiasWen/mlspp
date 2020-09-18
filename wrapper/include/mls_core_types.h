@@ -54,5 +54,7 @@ bool mls_from_extension_list(struct mls_extension_list *target, mls::ExtensionLi
 bool mls_from_extension(struct mls_extension *target, mls::Extension *src);
 bool mls_to_extension_list(mls::ExtensionList *target, struct mls_extension_list *src);
 bool mls_to_key_package(mls::KeyPackage *target, struct mls_key_package *src);
+bool mls_copy_key_package(struct mls_key_package *target, struct mls_key_package *src);
+bool mls_copy_extension_list(struct mls_extension_list *target, struct mls_extension_list *src);
 }
 #endif

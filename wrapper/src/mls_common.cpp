@@ -8,6 +8,15 @@ bool mls_create_bytes(struct mls_bytes *target, uint8_t *data, size_t size) {
     return true;
 }
 
+bool mls_copy_bytes(struct mls_bytes *target, struct mls_bytes *src) {
+    if(target != nullptr && src != nullptr) {
+        memcpy(target, src->data, src->size * sizeof(*target->data));
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void helloC(char name[]) {
     const mls_cipher_suite suite = mls_cipher_suite::X25519_AES128GCM_SHA256_Ed25519;
     std::cout << "Test";

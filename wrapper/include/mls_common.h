@@ -32,6 +32,7 @@ struct mls_bytes {
 };
 
 bool mls_create_bytes(struct mls_bytes *target, uint8_t *data, size_t size);
+bool mls_copy_bytes(struct mls_bytes *target, struct mls_bytes *src);
 void helloC(char name[]);
 #ifdef __cplusplus
 bool mls_from_bytes(struct mls_bytes *target, mls::bytes *origin);

@@ -55,3 +55,15 @@ bool mls_to_basic_credential(mls::BasicCredential *target, struct mls_basic_cred
         return false;
     }
 }
+
+bool mls_copy_credential(mls_credential *target, struct mls_credential *src) {
+    if(target != nullptr && src != nullptr) {
+        target->cred.type = src->cred.type;
+        mls_copy_bytes(&target->cred.identity, &src->cred.identity);
+        mls_copy_bytes(&target->cred.public_key.data, &src->cred.public_key.data);
+        target->cred.public_key.signature_scheme = src->cred.public_key.signature_scheme;
+        return true;
+    } else {
+        return false;
+    }
+}

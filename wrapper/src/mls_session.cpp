@@ -1,31 +1,105 @@
 #include "mls_session.h"
 #include "mls_primitives.h"
 #include "mls/session.h"
+bool mls_temp_init_info(struct mls_init_info *target,
+                        mls_cipher_suite suite,
+                        struct mls_signature_private_key *identity_priv,
+                        struct mls_credential *credential,
+                        size_t size,
+                        size_t identity_size,
+                        size_t extensions_reserved_size) {
+    mls::bytes bytes = mls::random_bytes(size);
 
-struct mls_init_info
-mls_temp_init_info(mls_cipher_suite suite, mls_signature_private_key identity_priv, mls_credential credential) {
-    struct mls_init_info init_info{};
-    size_t size = 32;
-    mls_bytes bytes = mls_generate_random_bytes(size);
-    init_info.init_secret = bytes.data;
-    init_info.init_secret_size = bytes.size;
-    struct mls_HPKE_private_key init_key = mls_derive_HPKE_private_key(suite, init_info.init_secret,
-                                                                       init_info.init_secret_size);
-    struct mls_HPKE_public_key hpke_pub_key{};
-    hpke_pub_key.data = init_key.pub_data;
-    hpke_pub_key.data_size = init_key.pub_data_size;
-    struct mls_key_package kp = mls_create_key_package(suite, hpke_pub_key, credential, identity_priv);
-    init_info.key_package = kp;
-    init_info.sig_priv = identity_priv;
-    return init_info;
+    // Reserve memory for temporal private init key
+    mls_HPKE_private_key init_key = {nullptr};
+    uint8_t init_key_data[size];
+    uint8_t init_pub_key_data[size];
+    init_key.data.data = &init_key_data[0];
+    init_key.data.size = size;
+    init_key.public_key.data.data = &init_pub_key_data[0];
+    init_key.public_key.data.size = size;
+    mls_derive_HPKE_private_key(&init_key, suite, &target->init_secret);
+
+    // Reserve memory for temporal key package
+    mls_key_package kp = {nullptr};
+    uint8_t kp_init_key_data[size];
+    uint8_t signature[size];
+    uint8_t identity[identity_size];
+    uint8_t kp_cred_public_key_data[size];
+    mls_extension extension_list[extensions_reserved_size];
+    kp.init_key.data.data = &kp_init_key_data[0];
+    kp.init_key.data.size = size;
+    kp.signature.data = &signature[0];
+    kp.signature.size = size;
+    kp.credential.cred.identity.data = &identity[0];
+    kp.credential.cred.identity.size = identity_size;
+    kp.credential.cred.public_key.data.data = &kp_cred_public_key_data[0];
+    kp.credential.cred.public_key.data.size = size;
+    kp.extensions.reserved_size = extensions_reserved_size;
+    kp.extensions.extensions = &extension_list[0];
+    mls_create_key_package(&kp, suite, &init_key.public_key, credential, identity_priv);
+
+    // Copy values
+    mls_from_bytes(&target->init_secret, &bytes);
+    target->sig_priv = *identity_priv;
+    mls_copy_key_package(&target->key_package, &kp);
 }
 
-struct mls_key_package
-mls_fresh_key_package(mls_cipher_suite suite, mls_signature_private_key identity_priv, mls_credential credential,
-                      mls_init_info *infos, int current_index) {
-    struct mls_init_info info = mls_temp_init_info(suite, identity_priv, credential);
-    *(infos + current_index * sizeof(*infos)) = info;
-    return info.key_package;
+bool mls_fresh_key_package(struct mls_key_package *target,
+                           mls_cipher_suite suite,
+                           struct mls_signature_private_key *identity_priv,
+                           struct mls_credential *credential,
+                           struct mls_init_info *infos,
+                           int current_index,
+                           size_t size,
+                           size_t identity_size,
+                           size_t extensions_reserved_size) {
+    if(target != nullptr && identity_priv != nullptr && credential != nullptr && infos != nullptr) {
+        struct mls_init_info info = {};
+        mls::bytes bytes = mls::random_bytes(size);
+
+        // Reserve memory for temporal private init key
+        mls_HPKE_private_key init_key = {nullptr};
+        uint8_t init_key_data[size];
+        uint8_t init_pub_key_data[size];
+        init_key.data.data = &init_key_data[0];
+        init_key.data.size = size;
+        init_key.public_key.data.data = &init_pub_key_data[0];
+        init_key.public_key.data.size = size;
+        mls_derive_HPKE_private_key(&init_key, suite, &info.init_secret);
+
+        // Reserve memory for temporal key package
+        mls_key_package kp = {nullptr};
+        uint8_t kp_init_key_data[size];
+        uint8_t signature[size];
+        uint8_t identity[identity_size];
+        uint8_t kp_cred_public_key_data[size];
+        mls_extension extension_list[extensions_reserved_size];
+        kp.init_key.data.data = &kp_init_key_data[0];
+        kp.init_key.data.size = size;
+        kp.signature.data = &signature[0];
+        kp.signature.size = size;
+        kp.credential.cred.identity.data = &identity[0];
+        kp.credential.cred.identity.size = identity_size;
+        kp.credential.cred.public_key.data.data = &kp_cred_public_key_data[0];
+        kp.credential.cred.public_key.data.size = size;
+        kp.extensions.reserved_size = extensions_reserved_size;
+        kp.extensions.extensions = &extension_list[0];
+        mls_create_key_package(&kp, suite, &init_key.public_key, credential, identity_priv);
+
+        // Copy values
+        mls_from_bytes(&info.init_secret, &bytes);
+        info.sig_priv = *identity_priv;
+        mls_copy_key_package(&info.key_package, &kp);
+
+        mls_temp_init_info(&info, suite, identity_priv, credential, size, identity_size, extensions_reserved_size);
+
+        mls_copy_init_info(infos + current_index * sizeof(*infos), &info);
+        mls_copy_key_package(target, &info.key_package);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 mls::Session::InitInfo mls_to_init_info(struct mls_init_info info) {
@@ -61,4 +135,19 @@ struct mls_session_welcome_tuple mls_session_start(struct mls_bytes group_id,
     tuple.session = reinterpret_cast<void*>(&session);
     tuple.welcome = reinterpret_cast<void*>(&welcome);
     return tuple;
+}
+
+bool mls_copy_init_info(struct mls_init_info *target, struct mls_init_info *src) {
+    if(target != nullptr && src != nullptr) {
+        mls_copy_bytes(&target->init_secret, &src->init_secret);
+        mls_copy_key_package(&target->key_package, &src->key_package);
+        mls_copy_bytes(&target->sig_priv.data, &src->sig_priv.data);
+        mls_copy_bytes(&target->sig_priv.public_key.data, &src->sig_priv.public_key.data);
+        target->sig_priv.signature_scheme = src->sig_priv.signature_scheme;
+        target->sig_priv.cipher_suite = src->sig_priv.cipher_suite;
+        target->sig_priv.public_key.signature_scheme = src->sig_priv.public_key.signature_scheme;
+        return true;
+    } else {
+        return false;
+    }
 }

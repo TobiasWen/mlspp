@@ -1,8 +1,11 @@
 #include "mls_primitives.h"
-#include "mls_util.h"
 
-struct mls_bytes mls_generate_random_bytes(size_t size) {
-    mls::bytes random_bytes = mls::random_bytes(size);
-   return from_mls_bytes(&random_bytes);
+bool mls_generate_random_bytes(struct mls_bytes *target, size_t size) {
+    if(target != nullptr) {
+        mls::bytes random_bytes = mls::random_bytes(size);
+        mls_from_bytes(target, &random_bytes);
+        return true;
+    } else {
+        return false;
+    }
 }
-

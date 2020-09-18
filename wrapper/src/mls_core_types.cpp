@@ -21,7 +21,7 @@ bool mls_create_key_package(mls_key_package *target,
         target->cipher_suite = (mls_cipher_suite) package.cipher_suite;
         mls_from_extension_list(&(target->extensions), &package.extensions);
         // TODO: note that the signature size and memory has to be allocated beforehand
-        memcpy(target->signature.data, &package.signature[0], target->signature.size * sizeof(*target->signature.data));
+        mls_from_bytes(&target->signature, &package.signature);
         target->version = (mls_protocol_version) package.version;
         return true;
     } else {
@@ -73,6 +73,31 @@ bool mls_to_key_package(mls::KeyPackage *target, struct mls_key_package *src) {
         mls_to_credential(&target->credential, &src->credential);
         mls_to_extension_list(&target->extensions, &src->extensions);
         mls_to_bytes(&target->signature, &src->signature);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_copy_key_package(struct mls_key_package *target, struct mls_key_package *src) {
+    if(target != nullptr && src != nullptr) {
+        target->cipher_suite = src->cipher_suite;
+        target->version = src->version;
+        mls_copy_bytes(&target->signature, &src->signature);
+        mls_copy_bytes(&target->init_key.data, &src->init_key.data);
+        mls_copy_extension_list(&target->extensions, &src->extensions);
+        mls_copy_credential(&target->credential, &src->credential);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_copy_extension_list(struct mls_extension_list *target, struct mls_extension_list *src) {
+    if(target != nullptr && src != nullptr) {
+        target->extensions_size = src->extensions_size;
+        target->reserved_size = src->reserved_size;
+        memcpy(target->extensions, src->extensions, src->reserved_size);
         return true;
     } else {
         return false;
