@@ -43,7 +43,7 @@ struct mls_key_package {
     struct mls_bytes signature;
 };
 
-bool mls_create_key_package(mls_key_package *target,
+bool mls_create_key_package(struct mls_key_package *target,
                             mls_cipher_suite suite,
                             struct mls_HPKE_public_key *HPKE_public_key,
                             struct mls_credential *credential,

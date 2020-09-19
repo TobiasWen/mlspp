@@ -5,44 +5,12 @@ bool mls_temp_init_info(struct mls_init_info *target,
                         mls_cipher_suite suite,
                         struct mls_signature_private_key *identity_priv,
                         struct mls_credential *credential,
-                        size_t size,
-                        size_t identity_size,
-                        size_t extensions_reserved_size) {
+                        size_t size) {
     mls::bytes bytes = mls::random_bytes(size);
-
-    // Reserve memory for temporal private init key
-    mls_HPKE_private_key init_key = {nullptr};
-    uint8_t init_key_data[size];
-    uint8_t init_pub_key_data[size];
-    init_key.data.data = &init_key_data[0];
-    init_key.data.size = size;
-    init_key.public_key.data.data = &init_pub_key_data[0];
-    init_key.public_key.data.size = size;
-    mls_derive_HPKE_private_key(&init_key, suite, &target->init_secret);
-
-    // Reserve memory for temporal key package
-    mls_key_package kp = {nullptr};
-    uint8_t kp_init_key_data[size];
-    uint8_t signature[size];
-    uint8_t identity[identity_size];
-    uint8_t kp_cred_public_key_data[size];
-    mls_extension extension_list[extensions_reserved_size];
-    kp.init_key.data.data = &kp_init_key_data[0];
-    kp.init_key.data.size = size;
-    kp.signature.data = &signature[0];
-    kp.signature.size = size;
-    kp.credential.cred.identity.data = &identity[0];
-    kp.credential.cred.identity.size = identity_size;
-    kp.credential.cred.public_key.data.data = &kp_cred_public_key_data[0];
-    kp.credential.cred.public_key.data.size = size;
-    kp.extensions.reserved_size = extensions_reserved_size;
-    kp.extensions.extensions = &extension_list[0];
-    mls_create_key_package(&kp, suite, &init_key.public_key, credential, identity_priv);
-
-    // Copy values
     mls_from_bytes(&target->init_secret, &bytes);
+    mls_derive_HPKE_private_key(&target->key_package.init_key, suite, &target->init_secret);
+    mls_create_key_package(&target->key_package, suite, &target->key_package.init_key, credential, identity_priv);
     target->sig_priv = *identity_priv;
-    mls_copy_key_package(&target->key_package, &kp);
 }
 
 bool mls_fresh_key_package(struct mls_key_package *target,
@@ -50,52 +18,12 @@ bool mls_fresh_key_package(struct mls_key_package *target,
                            struct mls_signature_private_key *identity_priv,
                            struct mls_credential *credential,
                            struct mls_init_info *infos,
-                           int current_index,
-                           size_t size,
-                           size_t identity_size,
-                           size_t extensions_reserved_size) {
+                           int *current_index,
+                           size_t size) {
     if(target != nullptr && identity_priv != nullptr && credential != nullptr && infos != nullptr) {
-        struct mls_init_info info = {};
-        mls::bytes bytes = mls::random_bytes(size);
-
-        // Reserve memory for temporal private init key
-        mls_HPKE_private_key init_key = {nullptr};
-        uint8_t init_key_data[size];
-        uint8_t init_pub_key_data[size];
-        init_key.data.data = &init_key_data[0];
-        init_key.data.size = size;
-        init_key.public_key.data.data = &init_pub_key_data[0];
-        init_key.public_key.data.size = size;
-        mls_derive_HPKE_private_key(&init_key, suite, &info.init_secret);
-
-        // Reserve memory for temporal key package
-        mls_key_package kp = {nullptr};
-        uint8_t kp_init_key_data[size];
-        uint8_t signature[size];
-        uint8_t identity[identity_size];
-        uint8_t kp_cred_public_key_data[size];
-        mls_extension extension_list[extensions_reserved_size];
-        kp.init_key.data.data = &kp_init_key_data[0];
-        kp.init_key.data.size = size;
-        kp.signature.data = &signature[0];
-        kp.signature.size = size;
-        kp.credential.cred.identity.data = &identity[0];
-        kp.credential.cred.identity.size = identity_size;
-        kp.credential.cred.public_key.data.data = &kp_cred_public_key_data[0];
-        kp.credential.cred.public_key.data.size = size;
-        kp.extensions.reserved_size = extensions_reserved_size;
-        kp.extensions.extensions = &extension_list[0];
-        mls_create_key_package(&kp, suite, &init_key.public_key, credential, identity_priv);
-
-        // Copy values
-        mls_from_bytes(&info.init_secret, &bytes);
-        info.sig_priv = *identity_priv;
-        mls_copy_key_package(&info.key_package, &kp);
-
-        mls_temp_init_info(&info, suite, identity_priv, credential, size, identity_size, extensions_reserved_size);
-
-        mls_copy_init_info(infos + current_index * sizeof(*infos), &info);
-        mls_copy_key_package(target, &info.key_package);
+        mls_init_info *info = infos + *current_index * sizeof(*infos);
+        mls_temp_init_info(info, suite, identity_priv, credential, size);
+        *target = info->key_package;
         return true;
     } else {
         return false;

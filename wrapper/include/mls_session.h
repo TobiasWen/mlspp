@@ -25,8 +25,8 @@ struct mls_session_welcome_tuple {
 };
 
 
-bool mls_temp_init_info(struct mls_init_info *target, mls_cipher_suite suite, struct mls_signature_private_key *identity_priv, struct mls_credential *credential, size_t size, size_t identity_size, size_t extensions_reserved_size);
-bool mls_fresh_key_package(struct mls_key_package *target, mls_cipher_suite suite, struct mls_signature_private_key *identity_priv, struct mls_credential *credential, struct mls_init_info *infos, int current_index,  size_t size, size_t identity_size, size_t extensions_reserved_size);
+bool mls_temp_init_info(struct mls_init_info *target, mls_cipher_suite suite, struct mls_signature_private_key *identity_priv, struct mls_credential *credential, size_t size);
+bool mls_fresh_key_package(struct mls_key_package *target, mls_cipher_suite suite, struct mls_signature_private_key *identity_priv, struct mls_credential *credential, struct mls_init_info *infos, int *current_index,  size_t size);
 bool mls_session_start(struct mls_session_welcome_tuple *target, struct mls_bytes *group_id, struct mls_init_info *my_info, size_t my_init_info_size, struct mls_key_package *key_packages, size_t key_packages_size, struct mls_bytes *random_bytes);
 bool mls_copy_init_info(struct mls_init_info *target, struct mls_init_info *src);
 #ifdef __cplusplus
