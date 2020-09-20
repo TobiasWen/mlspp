@@ -22,12 +22,6 @@ struct mls_bytes from_mls_bytes(mls::bytes *bytes) {
     return bytes1;
 }
 
-bool points_to_heap(void* init_brk, void* pointer){
-    void* cur_brk = sbrk(0);
-    return ((init_brk <= pointer) && (pointer <= cur_brk));
-}
-
-
 void get_heap_bounds(uint64_t* heap_start, uint64_t* heap_end){
     FILE *stream;
     char *line = NULL;

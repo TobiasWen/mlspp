@@ -21,7 +21,11 @@ struct mls_session {
 
 struct mls_session_welcome_tuple {
     void *session;
+    size_t session_size;
+    size_t session_size_reserved;
     void *welcome;
+    size_t welcome_size;
+    size_t welcome_size_reserved;
 };
 
 

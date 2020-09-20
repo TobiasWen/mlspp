@@ -1,7 +1,6 @@
 #pragma once
 #include "mls_common.h"
 #include "mls_crypto.h"
-#include "mls_core_types.h"
 #ifdef __cplusplus
 #include "mls/credential.h"
 extern "C" {

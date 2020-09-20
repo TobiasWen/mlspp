@@ -1,7 +1,5 @@
 #pragma once
 
-#include "mls_common.h"
-#include "mls_crypto.h"
 #include "mls_credential.h"
 
 #ifdef __cplusplus

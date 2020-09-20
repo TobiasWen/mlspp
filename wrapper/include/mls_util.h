@@ -11,7 +11,6 @@ extern "C" {
 
 
 void printUint8Array(uint8_t *array, size_t array_size, char prefix[]);
-bool points_to_heap(void* init_brk, void* pointer);
 bool is_heap_var(void* pointer);
 #ifdef __cplusplus
 struct mls_bytes from_mls_bytes(mls::bytes *bytes);
