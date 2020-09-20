@@ -12,6 +12,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find OpenSSL
+if (APPLE)
+  # This is a bug in CMake that causes it to prefer the system version over
+  # the one in the specified ROOT folder.
+  set(OPENSSL_ROOT_DIR ${OPENSSL_ROOT_DIR} /usr/local/Cellar/openssl@1.1/1.1.1g/)
+  set(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libcrypto.dylib CACHE FILEPATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARY ${OPENSSL_ROOT_DIR}/lib/libssl.dylib CACHE FILEPATH "" FORCE)
+endif()
 find_package(OpenSSL 1.1 REQUIRED)
 
 # Maybe set up linters
@@ -62,6 +69,7 @@ file(GLOB LIB_SOURCE_FILES "${LIBRARY_SRC_PATH}/*.cpp")
 add_library(${LIB_NAME} STATIC ${LIB_SOURCE_FILES})
 target_include_directories(${LIB_NAME} PRIVATE ${OPENSSL_INCLUDE_DIR}
                                        PRIVATE ${LIBRARY_INCLUDE_PATH})
+include_directories(BEFORE /usr/local/Cellar/openssl@1.1/1.1.1g/include)
 target_link_libraries(${LIB_NAME} ${OPENSSL_LIBRARIES})
 
 if(CLANG_TIDY_EXE)
