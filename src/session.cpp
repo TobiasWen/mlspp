@@ -4,6 +4,7 @@
 
 namespace mls {
 
+Session::InitInfo::InitInfo() = default;
 Session::InitInfo::InitInfo(bytes init_secret_in,
                             SignaturePrivateKey sig_priv_in,
                             KeyPackage key_package_in)
@@ -14,6 +15,9 @@ Session::InitInfo::InitInfo(bytes init_secret_in,
   auto init_priv =
     HPKEPrivateKey::derive(key_package.cipher_suite, init_secret);
   if (init_priv.public_key() != key_package.init_key) {
+      for(int i = 0; i < init_priv.public_key().data.size(); i++) {
+          printf("%d - init_priv.public_key = %u || key_package.init_key = %u\n", i, init_priv.public_key().data[i], key_package.init_key.data[i]);
+      }
     throw InvalidParameterError("Init key mismatch");
   }
 

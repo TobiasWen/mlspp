@@ -41,6 +41,10 @@ struct mls_key_package {
     struct mls_bytes signature;
 };
 
+bool mls_extension_list_allocate(struct mls_extension_list *target);
+bool mls_extension_list_destroy(struct mls_extension_list *target);
+bool mls_key_package_allocate(struct mls_key_package *target, size_t key_size);
+bool mls_key_package_destroy(struct mls_key_package *target);
 bool mls_create_key_package(struct mls_key_package *target,
                             mls_cipher_suite suite,
                             struct mls_HPKE_public_key *HPKE_public_key,

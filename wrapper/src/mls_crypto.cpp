@@ -1,10 +1,78 @@
 #include "mls_crypto.h"
 #include "mls/crypto.h"
 
+bool mls_signature_private_key_instantiate(struct mls_signature_private_key *target, mls_cipher_suite suite, size_t size) {
+    if(target != nullptr) {
+        mls_bytes_allocate(&target->data, size);
+        mls_bytes_allocate(&target->public_key.data, size);
+        mls_generate_mls_signature_private_key(target, suite);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_signature_private_key_destroy(struct mls_signature_private_key *target) {
+    if(target != nullptr) {
+        mls_bytes_destroy(&target->data);
+        mls_bytes_destroy(&target->public_key.data);
+        free(target);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_signature_public_key_instantiate(struct mls_signature_public_key *target, mls_cipher_suite suite, size_t size) {
+    mls_bytes_allocate(&target->data, size);
+
+}
+bool mls_signature_public_key_destroy(struct mls_signature_public_key *target);
+
 bool mls_generate_mls_signature_private_key(struct mls_signature_private_key *target, mls_cipher_suite suite) {
     if(target != nullptr) {
         auto priv = mls::SignaturePrivateKey::generate(static_cast<mls::CipherSuite>(suite));
         mls_convert_from_signature_private_key(target, &priv);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_hpke_private_key_allocate(struct mls_HPKE_private_key *target, size_t key_size) {
+    if(target != nullptr) {
+        mls_bytes_allocate(&target->data, key_size);
+        mls_hpke_public_key_allocate(&target->public_key, key_size);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_HPKE_private_key_destroy(struct mls_HPKE_private_key *target) {
+    if(target != nullptr) {
+        mls_bytes_destroy(&target->data);
+        mls_bytes_destroy(&target->public_key.data);
+        free(target);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_hpke_public_key_allocate(struct mls_HPKE_public_key *target, size_t key_size) {
+    if(target != nullptr) {
+        mls_bytes_allocate(&target->data, key_size);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_hpke_public_key_destroy(struct mls_HPKE_public_key *target) {
+    if(target != nullptr) {
+        mls_bytes_destroy(&target->data);
+        free(target);
         return true;
     } else {
         return false;

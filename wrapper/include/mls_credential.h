@@ -21,7 +21,10 @@ struct mls_credential {
     struct mls_basic_credential cred;
 };
 
-bool mls_create_basic_credential(struct mls_credential *target, mls_bytes *identity, struct mls_signature_public_key *public_key);
+bool mls_credential_allocate(struct mls_credential *target, struct mls_bytes *identity, size_t key_size);
+bool mls_credential_instantiate(struct mls_credential *target, struct mls_bytes *identity, struct mls_signature_public_key *public_key, size_t key_size);
+bool mls_credential_destroy(struct mls_credential *target);
+bool mls_create_basic_credential(struct mls_credential *target, struct mls_bytes *identity, struct mls_signature_public_key *public_key);
 #ifdef __cplusplus
 bool mls_from_credential(struct mls_credential *target, mls::Credential *src);
 bool mls_from_basic_credential(struct mls_basic_credential *target, mls::BasicCredential *src);

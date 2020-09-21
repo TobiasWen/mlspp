@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdlib>
-#include <cstdint>
-#include "mls/common.h"
-
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #ifdef __cplusplus
+#include "mls/common.h"
 extern "C" {
 #endif
 typedef enum
@@ -31,6 +31,8 @@ struct mls_bytes {
     size_t size;
 };
 
+bool mls_bytes_allocate(struct mls_bytes *bytes, size_t size);
+bool mls_bytes_destroy(struct mls_bytes *bytes);
 bool mls_create_bytes(struct mls_bytes *target, uint8_t *data, size_t size);
 bool mls_copy_bytes(struct mls_bytes *target, struct mls_bytes *src);
 void helloC(char name[]);

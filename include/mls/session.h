@@ -15,6 +15,8 @@ public:
     SignaturePrivateKey sig_priv;
     KeyPackage key_package;
 
+    InitInfo();
+
     InitInfo(bytes init_secret_in,
              SignaturePrivateKey sig_priv_in,
              KeyPackage key_package);

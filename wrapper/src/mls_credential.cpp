@@ -1,6 +1,38 @@
 #include "mls_credential.h"
 #include "mls/crypto.h"
 
+
+bool mls_credential_allocate(struct mls_credential *target, struct mls_bytes *identity, size_t key_size) {
+    if(target != nullptr && identity != nullptr) {
+        mls_bytes_allocate(&target->cred.identity, identity->size);
+        mls_bytes_allocate(&target->cred.public_key.data, key_size);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_credential_instantiate(struct mls_credential *target, struct mls_bytes *identity, struct mls_signature_public_key *public_key, size_t key_size) {
+    if(target != nullptr && identity != nullptr && public_key != nullptr) {
+        mls_credential_allocate(target, identity, key_size);
+        mls_create_basic_credential(target, identity, public_key);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_credential_destroy(struct mls_credential *target) {
+    if(target != nullptr) {
+        mls_bytes_destroy(&target->cred.public_key.data);
+        mls_bytes_destroy(&target->cred.identity);
+        free(target);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool mls_create_basic_credential(struct mls_credential *target, mls_bytes *identity, struct mls_signature_public_key *public_key) {
     if(target != nullptr && identity != nullptr && public_key != nullptr) {
         mls::bytes mls_identity(identity->data, identity->data + identity->size);

@@ -2,6 +2,31 @@
 #include "mls_core_types.h"
 #include "mls/core_types.h"
 
+bool mls_key_package_allocate(struct mls_key_package *target, mls_bytes *identity, size_t key_size) {
+    if(target != nullptr) {
+        mls_credential_allocate(&target->credential, identity, key_size);
+        mls_bytes_allocate(&target->signature, key_size);
+        mls_hpke_public_key_allocate(&target->init_key, key_size);
+        mls_extension_list_allocate(&target->extensions);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_key_package_destroy(struct mls_key_package *target) {
+    if (target != nullptr) {
+        mls_credential_destroy(&target->credential);
+        mls_bytes_destroy(&target->signature);
+        mls_hpke_public_key_destroy(&target->init_key);
+        mls_extension_list_destroy(&target->extensions);
+        free(target);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool mls_create_key_package(mls_key_package *target,
                             mls_cipher_suite suite,
                             struct mls_HPKE_public_key *HPKE_public_key,
@@ -23,6 +48,30 @@ bool mls_create_key_package(mls_key_package *target,
         // TODO: note that the signature size and memory has to be allocated beforehand
         mls_from_bytes(&target->signature, &package.signature);
         target->version = (mls_protocol_version) package.version;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_extension_list_allocate(struct mls_extension_list *target) {
+    if(target != nullptr) {
+        target->reserved_size = 16;
+        target->extensions = (struct mls_extension*) malloc(target->reserved_size * sizeof(*target->extensions));
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mls_extension_list_destroy(struct mls_extension_list *target) {
+    if(target != nullptr) {
+        for(int i = 0; i < target->reserved_size; i++) {
+            mls_bytes_destroy(&target->extensions[i].data);
+            //free(&target->extensions[i]); <--- Should not be needed
+        }
+        free(target->extensions);
+        free(target);
         return true;
     } else {
         return false;

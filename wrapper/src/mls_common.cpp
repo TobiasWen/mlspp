@@ -2,6 +2,22 @@
 #include <cstring>
 #include "mls_common.h"
 
+bool mls_bytes_allocate(struct mls_bytes *bytes, size_t size) {
+    bytes->size = size;
+    bytes->data = (uint8_t*) malloc(size * sizeof(*bytes->data));
+    return bytes;
+}
+
+bool mls_bytes_destroy(struct mls_bytes *bytes) {
+    if(bytes != nullptr) {
+        free(bytes->data);
+        free(bytes);
+        return true;
+    } else {
+        return true;
+    }
+}
+
 bool mls_create_bytes(struct mls_bytes *target, uint8_t *data, size_t size) {
     target->data = data;
     target->size = size;
@@ -25,7 +41,9 @@ void helloC(char name[]) {
 bool mls_from_bytes(struct mls_bytes *target, mls::bytes *origin) {
     if(target != nullptr && origin != nullptr) {
         size_t size = origin->size();
-        memcpy(target, (uint8_t*)&origin[0], size * sizeof(uint8_t));
+        for(int i = 0; i < size; i++) {
+            memcpy(&target->data[i], (uint8_t*)&origin->at(i), sizeof(uint8_t));
+        }
         return true;
     } else {
         return false;
@@ -36,7 +54,7 @@ bool mls_to_bytes(mls::bytes *target, struct mls_bytes *origin) {
     if(target != nullptr && origin != nullptr) {
         if(target->size() != origin->size) return false;
         for(int i = 0; i < origin->size; i++) {
-            memcpy(&target[i], &origin[i].data, origin->size);
+            memcpy(&target[i], &origin[i].data, sizeof(origin[i].data));
         }
         return true;
     } else {
