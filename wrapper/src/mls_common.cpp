@@ -54,7 +54,7 @@ bool mls_to_bytes(mls::bytes *target, struct mls_bytes *origin) {
     if(target != nullptr && origin != nullptr) {
         if(target->size() != origin->size) return false;
         for(int i = 0; i < origin->size; i++) {
-            memcpy(&target[i], &origin[i].data, sizeof(origin[i].data));
+            memcpy((uint8_t*)&target->at(i), &origin->data[i], sizeof(origin->data[i]));
         }
         return true;
     } else {

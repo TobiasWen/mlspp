@@ -5,7 +5,7 @@
 bool mls_key_package_allocate(struct mls_key_package *target, mls_bytes *identity, size_t key_size) {
     if(target != nullptr) {
         mls_credential_allocate(&target->credential, identity, key_size);
-        mls_bytes_allocate(&target->signature, key_size);
+        mls_bytes_allocate(&target->signature, key_size * 2);
         mls_hpke_public_key_allocate(&target->init_key, key_size);
         mls_extension_list_allocate(&target->extensions);
         return true;
@@ -34,10 +34,13 @@ bool mls_create_key_package(mls_key_package *target,
                             struct mls_signature_private_key *signature_private_key) {
     if(target != nullptr && HPKE_public_key != nullptr && credential != nullptr && signature_private_key != nullptr) {
         mls::HPKEPublicKey mls_hpke_pub_key;
+        mls_hpke_pub_key.data = mls::bytes(HPKE_public_key->data.size);
         mls_convert_to_HPKE_public_key(&mls_hpke_pub_key, HPKE_public_key);
         mls::Credential mls_cred;
         mls_to_credential(&mls_cred, credential);
         mls::SignaturePrivateKey identity_priv;
+        identity_priv._data = mls::bytes(signature_private_key->data.size);
+        identity_priv._pub_data = mls::bytes(signature_private_key->public_key.data.size);
         mls_convert_to_signature_private_key(&identity_priv, signature_private_key);
         mls::KeyPackage package = mls::KeyPackage{ (mls::CipherSuite) suite, mls_hpke_pub_key, mls_cred, identity_priv };
         if(target->signature.size != package.signature.size()) return false;
@@ -58,6 +61,10 @@ bool mls_extension_list_allocate(struct mls_extension_list *target) {
     if(target != nullptr) {
         target->reserved_size = 16;
         target->extensions = (struct mls_extension*) malloc(target->reserved_size * sizeof(*target->extensions));
+        for(int i = 0; i < target->reserved_size; i++) {
+            target->extensions[i].reserved_size = 100;
+            target->extensions[i].data.data = (uint8_t*) malloc(sizeof(target->extensions[i].data));
+        }
         return true;
     } else {
         return false;
@@ -81,12 +88,10 @@ bool mls_extension_list_destroy(struct mls_extension_list *target) {
 bool mls_from_extension_list(struct mls_extension_list *target, mls::ExtensionList *src) {
     if(target != nullptr && src != nullptr) {
         if(src->extensions.size() > target->reserved_size) return false;
-        struct mls_extension extensions[target->extensions_size];
-        for(int i = 0; i < src->extensions.size(); i++) {
-            mls_from_extension(&extensions[i], &src->extensions[i]);
-        }
         target->extensions_size = src->extensions.size();
-        memcpy(target->extensions, extensions, target->extensions_size);
+        for(int i = 0; i < src->extensions.size(); i++) {
+            mls_from_extension(&target->extensions[i], &src->extensions[i]);
+        }
         return true;
     } else {
         return false;
@@ -105,7 +110,7 @@ bool mls_to_extension_list(mls::ExtensionList *target, struct mls_extension_list
     if(target != nullptr && src != nullptr) {
         for(int i = 0; i < src->extensions_size; i++) {
             target->extensions[i].type = (mls::ExtensionType)src->extensions[i].type;
-            memcpy(&target->extensions[i].data[i], &src->extensions[i].data, src->extensions_size);
+            mls_to_bytes(&target->extensions.at(i).data, &src->extensions[i].data);
         }
         return true;
     } else {

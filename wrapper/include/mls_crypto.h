@@ -28,7 +28,7 @@ struct mls_HPKE_private_key {
 
 bool mls_signature_private_key_instantiate(struct mls_signature_private_key *target, mls_cipher_suite suite, size_t size);
 bool mls_signature_private_key_destroy(struct mls_signature_private_key *target);
-bool mls_signature_public_key_instantiate(struct mls_signature_public_key *target, mls_cipher_suite suite, size_t size);
+bool mls_signature_public_key_instantiate(struct mls_signature_public_key *target, struct mls_bytes *data, mls_signature_scheme scheme);
 bool mls_signature_public_key_destroy(struct mls_signature_public_key *target);
 bool mls_generate_mls_signature_private_key(struct mls_signature_private_key *target, mls_cipher_suite suite);
 //bool mls_get_signature_public_key_from_private_key(struct mls_signature_public_key *target, struct mls_signature_private_key *private_key);

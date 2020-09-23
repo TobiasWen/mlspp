@@ -37,6 +37,7 @@ bool mls_create_basic_credential(struct mls_credential *target, mls_bytes *ident
     if(target != nullptr && identity != nullptr && public_key != nullptr) {
         mls::bytes mls_identity(identity->data, identity->data + identity->size);
         mls::SignaturePublicKey mls_pub_key;
+        mls_pub_key._data = mls::bytes(public_key->data.size);
         mls_convert_to_signature_public_key(&mls_pub_key, public_key);
         mls::Credential basic_cred = mls::Credential::basic(mls_identity, mls_pub_key);
         mls_from_credential(target, &basic_cred);
@@ -69,6 +70,8 @@ bool mls_from_basic_credential(struct mls_basic_credential *target, mls::BasicCr
 bool mls_to_credential(mls::Credential *target, struct mls_credential *src) {
     if(target != nullptr && src != nullptr) {
         mls::BasicCredential credential = std::get<mls::BasicCredential>(target->_cred);
+        credential.public_key._data = mls::bytes(src->cred.public_key.data.size);
+        credential.identity = mls::bytes(src->cred.identity.size);
         mls_to_basic_credential(&credential, &src->cred);
         target->_cred = credential;
         return true;

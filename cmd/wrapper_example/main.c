@@ -4,7 +4,7 @@
 #include "mls_primitives.h"
 #include "mls_session.h"
 #include "string.h"
-#include "mls_util.h"
+
 
 const mls_cipher_suite suite = X25519_AES128GCM_SHA256_Ed25519;
 const size_t key_size = 32;
@@ -42,9 +42,41 @@ int main(int argc, const char* argv[])
     struct mls_user *bob = user_create("bob", 3);
     struct mls_user *charlie = user_create("charlie", 7);
 
-    ////////// Cleanup ///////////
-    user_destroy(alice);
-    user_destroy(bob);
-    user_destroy(charlie);
+    ////////// ACT I: CREATION ///////////
+
+    // Bob posts a KeyPackage
+    struct mls_key_package kp_b = {0};
+    mls_fresh_key_package(&kp_b, suite, &bob->identity_priv, &bob->credential, bob->infos, &bob->current_index, key_size);
+
+    // Alice starts a session with Bob
+    struct mls_init_info info_a = {0};
+    struct mls_key_package kpckgs[] = { kp_b };
+    mls_temp_init_info_instantiate(&info_a, suite, &alice->identity_priv, &alice->credential, key_size);
+    struct mls_init_info infos[] = {info_a};
+    struct mls_bytes groupd_id;
+    uint8_t group_id_data[4];
+    group_id_data[0] = 0;
+    group_id_data[1] = 1;
+    group_id_data[2] = 2;
+    group_id_data[3] = 3;
+    groupd_id.size = 4;
+    groupd_id.data = &group_id_data[0];
+    struct mls_session_welcome_tuple session_welcome = {0};
+    session_welcome.session = malloc(1000);
+    session_welcome.welcome = malloc(1000);
+    session_welcome.session_size_reserved = 1000;
+    session_welcome.welcome_size_reserved = 1000;
+    struct mls_bytes rnd_bytes = {};
+    uint8_t rnd_bytes_data[key_size];
+    rnd_bytes.size = key_size;
+    rnd_bytes.data = &rnd_bytes_data[0];
+    mls_generate_random_bytes(&rnd_bytes, key_size);
+    mls_session_start(&session_welcome, &groupd_id, &infos[0], 1, &kpckgs[0], 1, &rnd_bytes);
+
+    // Bob looks up his CIK based on the welcome, and initializes
+    // his session
+
+    // Alice and Bob should now be on the same page
+
     helloC("Test\n");
 };

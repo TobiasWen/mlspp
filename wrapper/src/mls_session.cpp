@@ -9,7 +9,7 @@ bool mls_temp_init_info_instantiate(struct mls_init_info *target, mls_cipher_sui
                                     size_t size) {
     if (target != nullptr && identity_priv != nullptr && credential != nullptr) {
         mls_signature_private_key_instantiate(&target->sig_priv, suite, size);
-        mls_key_package_allocate(&target->key_package, size);
+        mls_key_package_allocate(&target->key_package, &credential->cred.identity, size);
         mls_bytes_allocate(&target->init_secret, size);
         mls_temp_init_info(target, suite, identity_priv, credential, size);
         return true;
@@ -39,8 +39,7 @@ bool mls_temp_init_info(struct mls_init_info *target,
         mls::bytes bytes = mls::random_bytes(size);
         mls_from_bytes(&target->init_secret, &bytes);
         mls_HPKE_private_key init_key{};
-        init_key.data.data = (uint8_t *) malloc(size * sizeof(*init_key.data.data));
-        init_key.data.size = size;
+        mls_hpke_private_key_allocate(&init_key, size);
         mls_derive_HPKE_private_key(&init_key, suite, &target->init_secret);
         mls_create_key_package(&target->key_package, suite, &init_key.public_key, credential, identity_priv);
         target->sig_priv = *identity_priv;
@@ -50,21 +49,13 @@ bool mls_temp_init_info(struct mls_init_info *target,
     }
 }
 
-bool mls_fresh_key_package_instantiate(struct mls_key_package *target, mls_cipher_suite suite,
-                                       struct mls_signature_private_key *identity_priv,
-                                       struct mls_credential *credential, struct mls_init_info *infos,
-                                       const int *current_index, size_t size) {
-    if (target != nullptr && identity_priv != nullptr && credential != nullptr && infos != nullptr && current_index !=
-                                                                                                      nullptr) {
-        
-        return true;
-    } else {
-        return true;
-    }
-}
-
 bool mls_fresh_key_package_destroy(struct mls_key_package *target) {
     if (target != nullptr) {
+        mls_bytes_destroy(&target->signature);
+        mls_credential_destroy(&target->credential);
+        mls_extension_list_destroy(&target->extensions);
+        mls_hpke_public_key_destroy(&target->init_key);
+        free(target);
         return true;
     } else {
         return true;
@@ -81,7 +72,7 @@ bool mls_fresh_key_package(struct mls_key_package *target,
     if (target != nullptr && identity_priv != nullptr && credential != nullptr && infos != nullptr && current_index !=
                                                                                                       nullptr) {
         mls_init_info *info = infos + *current_index * sizeof(*infos);
-        mls_temp_init_info(info, suite, identity_priv, credential, size);
+        mls_temp_init_info_instantiate(info, suite, identity_priv, credential, size);
         *target = info->key_package;
         (*current_index)++;
         return true;
@@ -119,11 +110,26 @@ bool mls_session_start(struct mls_session_welcome_tuple *target,
         mls_to_bytes(&init_secret, &my_info->init_secret);
         std::vector<mls::Session::InitInfo> info(my_init_info_size);
         for (int i = 0; i < my_init_info_size; i++) {
-            mls_to_init_info(&info[i], my_info + i * sizeof(*my_info));
+            info.at(i).init_secret = mls::bytes((my_info + i * sizeof(*my_info))->init_secret.size);
+            info.at(i).sig_priv._data = mls::bytes((my_info + i * sizeof(*my_info))->sig_priv.data.size);
+            info.at(i).sig_priv._pub_data = mls::bytes((my_info + i * sizeof(*my_info))->sig_priv.public_key.data.size);
+            info.at(i).key_package.extensions.extensions = std::vector<mls::Extension>((my_info + i * sizeof(*my_info))->key_package.extensions.extensions_size);
+            for(int j = 0; j < (my_info + i * sizeof(*my_info))->key_package.extensions.extensions_size; j++) {
+                info.at(i).key_package.extensions.extensions.at(j).data = mls::bytes((my_info + i * sizeof(*my_info))->key_package.extensions.extensions[j].data.size);
+            }
+            info.at(i).key_package.init_key.data = mls::bytes((my_info + i * sizeof(*my_info))->key_package.init_key.data.size);
+            info.at(i).key_package.signature = mls::bytes((my_info + i * sizeof(*my_info))->key_package.signature.size);
+            mls_to_init_info(&info.at(i), my_info + i * sizeof(*my_info));
         }
         std::vector<mls::KeyPackage> kpckgs(key_packages_size);
         for (int i = 0; i < key_packages_size; i++) {
-            mls_to_key_package(&kpckgs[i], key_packages + i * sizeof(*key_packages));
+            kpckgs.at(i).extensions.extensions = std::vector<mls::Extension>((key_packages + i * sizeof(*key_packages))->extensions.extensions_size);
+            for(int j = 0; j < (key_packages + i * sizeof(*key_packages))->extensions.extensions_size; j++) {
+                kpckgs.at(i).extensions.extensions.at(j).data = mls::bytes((key_packages + i * sizeof(*key_packages))->extensions.extensions[j].data.size);
+            }
+            kpckgs.at(i).init_key.data = mls::bytes((key_packages + i * sizeof(*key_packages))->init_key.data.size);
+            kpckgs.at(i).signature = mls::bytes((key_packages + i * sizeof(*key_packages))->signature.size);
+            mls_to_key_package(&kpckgs.at(i), key_packages + i * sizeof(*key_packages));
         }
         mls::bytes rnd_bytes(random_bytes->size);
         mls_to_bytes(&rnd_bytes, random_bytes);
@@ -133,8 +139,10 @@ bool mls_session_start(struct mls_session_welcome_tuple *target,
         void *welcome_data = reinterpret_cast<void *>(&welcome);
         target->session_size = sizeof(session);
         target->welcome_size = sizeof(welcome);
-        memcpy(&target->session, session_data, target->session_size);
-        memcpy(&target->welcome, welcome_data, target->welcome_size);
+        target->session = malloc(target->session_size);
+        target->welcome = malloc(target->welcome_size);
+        memcpy(target->session, session_data, target->session_size);
+        memcpy(target->welcome, welcome_data, target->welcome_size);
         return true;
     } else {
         return false;

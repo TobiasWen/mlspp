@@ -23,11 +23,26 @@ bool mls_signature_private_key_destroy(struct mls_signature_private_key *target)
     }
 }
 
-bool mls_signature_public_key_instantiate(struct mls_signature_public_key *target, mls_cipher_suite suite, size_t size) {
-    mls_bytes_allocate(&target->data, size);
-
+bool mls_signature_public_key_instantiate(struct mls_signature_public_key *target, mls_bytes *data, mls_signature_scheme scheme) {
+    if(target != nullptr && data != nullptr) {
+        mls_bytes_allocate(&target->data, data->size);
+        mls_copy_bytes(&target->data, data);
+        target->signature_scheme = scheme;
+        return true;
+    } else {
+        return false;
+    }
 }
-bool mls_signature_public_key_destroy(struct mls_signature_public_key *target);
+
+bool mls_signature_public_key_destroy(struct mls_signature_public_key *target) {
+    if(target != nullptr) {
+        mls_bytes_destroy(&target->data);
+        free(target);
+        return true;
+    } else {
+        return false;
+    }
+}
 
 bool mls_generate_mls_signature_private_key(struct mls_signature_private_key *target, mls_cipher_suite suite) {
     if(target != nullptr) {
