@@ -9,7 +9,7 @@
 
 using namespace mls;
 
-const auto suite = CipherSuite::X25519_AES128GCM_SHA256_Ed25519;
+const auto suite = CipherSuite::X25519_CHACHA20POLY1305_SHA256_Ed25519;
 
 class User
 {
@@ -85,6 +85,7 @@ main()
   auto group_id = bytes{ 0, 1, 2, 3 };
   auto [sessionA, welcome] =
     Session::start(group_id, { infoA }, { kpB }, random_bytes(32));
+
 
   // Bob looks up his CIK based on the welcome, and initializes
   // his session

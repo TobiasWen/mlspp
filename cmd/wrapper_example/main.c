@@ -43,7 +43,6 @@ int main(int argc, const char* argv[])
     struct mls_user *charlie = user_create("charlie", 7);
 
     ////////// ACT I: CREATION ///////////
-
     // Bob posts a KeyPackage
     struct mls_key_package kp_b = {0};
     mls_fresh_key_package(&kp_b, suite, &bob->identity_priv, &bob->credential, bob->infos, &bob->current_index, key_size);
@@ -52,7 +51,7 @@ int main(int argc, const char* argv[])
     struct mls_init_info info_a = {0};
     struct mls_key_package kpckgs[] = { kp_b };
     mls_temp_init_info_instantiate(&info_a, suite, &alice->identity_priv, &alice->credential, key_size);
-    struct mls_init_info infos[] = {info_a};
+    struct mls_init_info infos[] = { info_a };
     struct mls_bytes groupd_id;
     uint8_t group_id_data[4];
     group_id_data[0] = 0;
@@ -62,10 +61,11 @@ int main(int argc, const char* argv[])
     groupd_id.size = 4;
     groupd_id.data = &group_id_data[0];
     struct mls_session_welcome_tuple session_welcome = {0};
-    session_welcome.session = malloc(1000);
-    session_welcome.welcome = malloc(1000);
-    session_welcome.session_size_reserved = 1000;
-    session_welcome.welcome_size_reserved = 1000;
+    session_welcome.session.data = malloc(1000);
+    session_welcome.session.size_reserved = 1000;
+    session_welcome.welcome.size_reserved = 1000;
+    uint8_t welcome_bytes[session_welcome.welcome.size_reserved];
+    session_welcome.welcome.bytes.data = &welcome_bytes[0];
     struct mls_bytes rnd_bytes = {};
     uint8_t rnd_bytes_data[key_size];
     rnd_bytes.size = key_size;
@@ -75,7 +75,10 @@ int main(int argc, const char* argv[])
 
     // Bob looks up his CIK based on the welcome, and initializes
     // his session
-
+    struct mls_session sessionB;
+    sessionB.data = malloc(1000);
+    sessionB.size_reserved = 1000;
+    mls_session_join(&sessionB, &bob->infos[0], bob->current_index, &session_welcome);
     // Alice and Bob should now be on the same page
 
     helloC("Test\n");

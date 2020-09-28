@@ -3,6 +3,7 @@
 #include "mls_primitives.h"
 #include "mls_crypto.h"
 #include "mls/session.h"
+#include <iostream>
 
 bool mls_temp_init_info_instantiate(struct mls_init_info *target, mls_cipher_suite suite,
                                     struct mls_signature_private_key *identity_priv, struct mls_credential *credential,
@@ -133,20 +134,47 @@ bool mls_session_start(struct mls_session_welcome_tuple *target,
         }
         mls::bytes rnd_bytes(random_bytes->size);
         mls_to_bytes(&rnd_bytes, random_bytes);
+
         auto[session, welcome] =
         mls::Session::start(mls_group_id, info, kpckgs, rnd_bytes);
-        void *session_data = reinterpret_cast<void *>(&session);
-        void *welcome_data = reinterpret_cast<void *>(&welcome);
-        target->session_size = sizeof(session);
-        target->welcome_size = sizeof(welcome);
-        target->session = malloc(target->session_size);
-        target->welcome = malloc(target->welcome_size);
-        memcpy(target->session, session_data, target->session_size);
-        memcpy(target->welcome, welcome_data, target->welcome_size);
+        mls::Session* session_heap = new mls::Session(session);
+        void *session_data = reinterpret_cast<void *>(session_heap);
+        mls::bytes welcome_bytes = tls::marshal(welcome);
+        target->session.size = sizeof(*session_heap);
+        target->session.data = malloc(target->session.size);
+        memcpy(target->session.data, session_data, target->session.size);
+        target->welcome.bytes.size = welcome_bytes.size();
+        mls_from_bytes(&target->welcome.bytes, &welcome_bytes);
         return true;
     } else {
         return false;
     }
+}
+
+bool mls_session_join(struct mls_session *target, struct mls_init_info *infos, size_t infos_size, struct mls_session_welcome_tuple *session_welcome) {
+    std::vector<mls::Session::InitInfo> info(infos_size);
+    for (int i = 0; i < infos_size; i++) {
+        info.at(i).init_secret = mls::bytes((infos + i * sizeof(*infos))->init_secret.size);
+        info.at(i).sig_priv._data = mls::bytes((infos + i * sizeof(*infos))->sig_priv.data.size);
+        info.at(i).sig_priv._pub_data = mls::bytes((infos + i * sizeof(*infos))->sig_priv.public_key.data.size);
+        info.at(i).key_package.extensions.extensions = std::vector<mls::Extension>((infos + i * sizeof(*infos))->key_package.extensions.extensions_size);
+        for(int j = 0; j < (infos + i * sizeof(*infos))->key_package.extensions.extensions_size; j++) {
+            info.at(i).key_package.extensions.extensions.at(j).data = mls::bytes((infos + i * sizeof(*infos))->key_package.extensions.extensions[j].data.size);
+        }
+        info.at(i).key_package.init_key.data = mls::bytes((infos + i * sizeof(*infos))->key_package.init_key.data.size);
+        info.at(i).key_package.signature = mls::bytes((infos + i * sizeof(*infos))->key_package.signature.size);
+        mls_to_init_info(&info.at(i), infos + i * sizeof(*infos));
+    }
+    mls::Welcome mls_welcome;
+    mls::bytes welcome_bytes(session_welcome->welcome.bytes.size);
+    mls_to_bytes(&welcome_bytes, &session_welcome->welcome.bytes);
+    tls::unmarshal(welcome_bytes, mls_welcome);
+    auto session = mls::Session::join(info, mls_welcome);
+    mls::Session* session_heap = new mls::Session(session);
+    void *session_data = reinterpret_cast<void *>(session_heap);
+    target->size = sizeof(session);
+    target->data = session_data;
+    return true;
 }
 
 bool mls_copy_init_info(struct mls_init_info *target, struct mls_init_info *src) {
