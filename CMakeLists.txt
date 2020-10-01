@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(mlspp
   VERSION 0.1
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 option(CLANG_TIDY "Perform linting with clang-tidy" OFF)
@@ -17,6 +17,9 @@ include(CheckCXXCompilerFlag)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED  ON)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   add_compile_options(-Wall -pedantic -Wextra -Werror -Wmissing-declarations)
   check_cxx_compiler_flag(-Wextra-semi COMPILER_SUPPORTS_EXTRA_SEMI_WARNING)
@@ -79,6 +82,12 @@ target_include_directories(${LIB_NAME}
 ###
 
 add_subdirectory(test)
+
+###
+### C API Wrapper
+###
+
+add_subdirectory(wrapper)
 
 ###
 ### Applications
