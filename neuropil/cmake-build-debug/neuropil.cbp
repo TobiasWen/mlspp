@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="neuropil"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\examples\;CMake Files\examples\neuropil_mls\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="Nightly">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 Nightly"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="package">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 package"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="neuropil">
+				<Option output="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/libneuropil.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/framework"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/llvm-10/lib/clang/10.0.0/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 neuropil"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="neuropil/fast">
+				<Option output="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/libneuropil.so" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="3"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/framework"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/llvm-10/lib/clang/10.0.0/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 neuropil/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="Continuous">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 Continuous"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="package_source">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 package_source"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="Experimental">
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 Experimental"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="neuropil_mls">
+				<Option output="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/neuropil_mls" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/examples/neuropil_mls/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/framework"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/llvm-10/lib/clang/10.0.0/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 neuropil_mls"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="neuropil_mls/fast">
+				<Option output="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/neuropil_mls" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/examples/neuropil_mls/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/include"/>
+					<Add directory="/home/tobias/Projects/temp-neuropil/neuropil/framework"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/bin/../lib/gcc/x86_64-linux-gnu/9/../../../../include/c++/9/backward"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/llvm-10/lib/clang/10.0.0/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 neuropil_mls/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/home/tobias/Projects/temp-neuropil/neuropil/cmake-build-debug/examples/neuropil_mls/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/examples/neuropil_mls/src/main.c">
+			<Option target="neuropil_mls"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/examples/neuropil_mls/src/np_mls_client.c">
+			<Option target="neuropil_mls"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/http/np_http.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/http/np_http.h">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/prometheus/prometheus.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/prometheus/prometheus.h">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/sysinfo/np_sysinfo.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/framework/sysinfo/np_sysinfo.h">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/core/np_comp_alias.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/core/np_comp_identity.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/core/np_comp_intent.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/core/np_comp_msgproperty.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/core/np_comp_node.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/dtime.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/event/ev.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/gpio/bcm2835.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/json/parson.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/msgpack/cmp.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/neuropil.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/neuropil_attributes.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/neuropil_data.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_aaatoken.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_axon.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_bloom.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_bootstrap.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_crypto.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_dendrit.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_dhkey.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_event.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_glia.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_jobqueue.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_key.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_keycache.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_legacy.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_log.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_memory.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_message.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_messagepart.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_network.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_node.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_pheromones.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_responsecontainer.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_route.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_scache.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_serialization.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_shutdown.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_statistics.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_threads.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_time.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_token_factory.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_tree.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_treeval.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/np_util.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/src/util/np_statemachine.c">
+			<Option target="neuropil"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/examples/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\examples\"/>
+		</Unit>
+		<Unit filename="/home/tobias/Projects/temp-neuropil/neuropil/examples/neuropil_mls/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\examples\neuropil_mls\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

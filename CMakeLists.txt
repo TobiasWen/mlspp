@@ -94,3 +94,8 @@ add_subdirectory(wrapper)
 ###
 
 add_subdirectory(cmd)
+
+###
+### Neuropil
+###
+add_subdirectory(neuropil)
