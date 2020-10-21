@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/main.c
+neuropil.h
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/neuropil.h
+mlspp_wrapper.h
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/mlspp_wrapper.h
+
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/np_mls_client.c
+np_mls_client
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/np_mls_client
+stdlib.h
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/stdlib.h
+assert.h
+/home/tobias/Projects/mlspp/cmd/wrapper_neuropil_example/src/assert.h
+
