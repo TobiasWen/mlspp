@@ -6,9 +6,10 @@
 
 typedef enum {
   NP_MLS_PACKAGE_UNKNOWN = 0x000,
-  NP_MLS_PACKAGE_KEYPACKAGE_REQUEST = 0x001,
-  NP_MLS_PACKAGE_KEYPACKAGE_RESPONSE = 0x002,
-  NP_MLS_PACKAGE_WELCOME = 0x003,
+  NP_MLS_PACKAGE_HELLO = 0x001,
+  NP_MLS_PACKAGE_KEYPACKAGE_REQUEST = 0x002,
+  NP_MLS_PACKAGE_KEYPACKAGE_RESPONSE = 0x003,
+  NP_MLS_PACKAGE_WELCOME = 0x004,
 } np_mls_package_type;
 
 typedef struct {
@@ -26,9 +27,9 @@ typedef struct {
     struct np_settings cfg;
     struct np_context *context;
     char *name;
-    bool isRunning;
-    pthread_t *neuropil_thread;
     size_t name_size;
+    bool isRunning;
+    pthread_t *neuropil_thread; // TODO: no pointer needed P_THREAD_INITIALIZER
     Client *mls_client;
     arraylist *groups;
 } np_mls_client;
@@ -49,6 +50,7 @@ void delete_np_mls_client(np_mls_client *client);
 void np_mls_client_neuropil_loop(np_mls_client *client);
 bool np_mls_client_subscribe(np_mls_client* client, char subject[], bool (*handle_cb)(np_context*, struct np_message*));
 bool np_mls_client_send(np_mls_client* client, char subject[], const unsigned char message[], size_t message_len);
+void np_mls_say_hello(np_mls_client* client, char name[], size_t name_size);
 void np_mls_client_invite_client(np_mls_client* client, mls_bytes group_id, char name[], size_t name_size);
 void np_mls_client_create_group(np_mls_client* client, mls_bytes group_id);
 void delete_np_mls_group_data(np_mls_group_data *group_data, const char *local_name);

@@ -6,35 +6,46 @@
 #include <np_util.h>
 #include <string.h>
 
-bool authorize(np_context *context, struct np_token *token) {
+bool authorize(np_context *context, struct np_token *id) {
+  np_mls_client *client = np_get_userdata(context);
+  printf("[%s] authz %s from %s: %02X%02X%02X%02X%02X%02X%02X...\n",client->name, id->subject, id->issuer, id->public_key[0], id->public_key[1], id->public_key[2], id->public_key[3], id->public_key[4], id->public_key[5], id->public_key[6]);
   return true;
 }
 
 bool receive_personal(np_context *context, struct np_message *message) {
   np_mls_client *client = np_get_userdata(context);
-  log_msg(LOG_INFO, "RECEIVED: %.*s", message->data_length, message->data);
   np_tree_t *packet = np_tree_create();
   np_buffer2tree(context, message->data, packet);
-  np_tree_elem_t *source = np_tree_find_str(packet, "np.mls.type");
-  if(source == NULL) {
+  // Get Type
+  np_tree_elem_t *source_type = np_tree_find_str(packet, "np.mls.type");
+  if(source_type == NULL) {
     return false;
   }
   bool source_str_free = false;
-  np_mls_package_type type = np_treeval_to_str(source->val, &source_str_free);
+  np_mls_package_type type = np_treeval_to_str(source_type->val, &source_str_free);
+  // Get Sender
+  np_tree_elem_t *source_sender = np_tree_find_str(packet, "np.mls.sender");
+  if(source_sender == NULL) {
+    return false;
+  }
+  char *sender = np_treeval_to_str(source_sender->val, &source_str_free);
+  printf("[%s] received from %s: %.*s\n",client->name, sender, message->data_length, message->data);
   return true;//np_mls_handle_message(client, );
 }
+
 bool receive_group(np_context *context, struct np_message *message) {
   np_mls_client *client = np_get_userdata(context);
-  log_msg(LOG_INFO, "RECEIVED: %.*s", message->data_length, message->data);
+  printf("[%s] received: %.*s\n",client->name, message->data_length, message->data);
   return true;
 }
 
 np_mls_client*
 new_np_mls_client(char name[], size_t name_size)
 {
-  np_mls_client* client = malloc(sizeof(*client));
-  client->name = malloc(name_size);
-  client->neuropil_thread = malloc(sizeof(*client->neuropil_thread));
+  // TODO: Sizeof malloc -> calloc and edit sizeof
+  np_mls_client *client = calloc(1, sizeof(np_mls_client));
+  client->name = calloc(1, name_size);
+  client->neuropil_thread = calloc(1, sizeof(pthread_t));
   for (int i = 0; i < name_size; i++) {
     client->name[i] = name[i];
   }
@@ -53,9 +64,10 @@ void np_mls_client_join_network(np_mls_client *client, char connection_string[],
   assert(np_ok == np_set_authorize_cb(client->context, authorize));
   // subscribe to personal channel
   char prefix[] = "mls/inbox/";
-  char subject[sizeof(prefix) + client->name_size];
-  strcpy(subject, prefix);
-  strcat(subject, client->name);
+  size_t subject_size = sizeof(prefix) + client->name_size;
+  char subject[subject_size + 1];
+  strncpy(subject, prefix, subject_size);
+  strncat(subject, client->name, subject_size);
   printf("Subscribing on subject: \"%s\"\n", subject);
   assert(np_ok == np_add_receive_cb(client->context, subject, receive_personal));
   // start neuropil thread
@@ -77,12 +89,26 @@ np_mls_client_subscribe(np_mls_client* client,
 }
 
 bool np_mls_client_send(np_mls_client* client, char subject[], const unsigned char message[], size_t message_len) {
-  if(client) {
+  if(client != NULL) {
     np_send(client->context, subject, message, message_len);
     return true;
   } else {
     return false;
   }
+}
+
+void np_mls_say_hello(np_mls_client* client, char name[], size_t name_size) {
+  mls_bytes request_data = np_mls_signal_create(client, NP_MLS_PACKAGE_HELLO);
+  char prefix[] = "mls/inbox/";
+  size_t subject_size = sizeof(prefix) + name_size;
+  char subject[subject_size + 1];
+  strncpy(subject, prefix, subject_size);
+  strncat(subject, name, subject_size);
+  struct np_mx_properties props = np_get_mx_properties(client->context, subject);
+  props.ackmode = NP_MX_ACK_NONE;
+  props.message_ttl = 40.0;
+  np_set_mx_properties(client->context, subject, props);
+  assert(np_mls_client_send(client, subject, request_data.data, request_data.size));
 }
 
 void
@@ -125,27 +151,33 @@ void np_mls_client_invite_client(np_mls_client *client, mls_bytes group_id, char
   // Request KeyPackage from client
   mls_bytes request_data = np_mls_signal_create(client, NP_MLS_PACKAGE_KEYPACKAGE_REQUEST);
   char prefix[] = "mls/inbox/";
-  char subject[sizeof(prefix) + name_size];
-  strcpy(subject, prefix);
-  strcat(subject, name);
-  printf("Sending client invititation un subject: \"%s\"\n", subject);
+  size_t subject_size = sizeof(prefix) + name_size;
+  char subject[subject_size + 1];
+  strncpy(subject, prefix, subject_size);
+  strncat(subject, name, subject_size);
+  //printf("Sending client invititation un subject: \"%s\"\n", subject);
+  struct np_mx_properties props = np_get_mx_properties(client->context, subject);
+  props.ackmode = NP_MX_ACK_NONE;
+  props.message_ttl = 40.0;
+  np_set_mx_properties(client->context, subject, props);
   assert(np_mls_client_send(client, subject, request_data.data, request_data.size));
   mls_delete_bytes(request_data);
 }
 
 void np_mls_client_create_group(np_mls_client *client, mls_bytes group_id) {
     Session* new_session = mls_begin_session(client->mls_client, group_id);
-    np_mls_group_data *new_group = malloc(sizeof(np_mls_group_data));
+    np_mls_group_data *new_group = calloc(1, sizeof(np_mls_group_data));
     new_group->session = new_session;
     new_group->group_id = group_id;
     new_group->members = arraylist_create();
-    np_mls_group_member *local_client = malloc(sizeof(*local_client));
-    local_client->name = malloc(client->name_size * sizeof(*local_client->name));
+    np_mls_group_member *local_client = calloc(1, sizeof(*local_client));
+    local_client->name = calloc(client->name_size, sizeof(*local_client->name));
     strcpy(local_client->name, client->name);
     local_client->name_size = client->name_size;
     arraylist_add(new_group->members, client->name);
     arraylist_add(client->groups, new_group);
 }
+
 
 np_mls_group_data* np_mls_group_find_by_id(arraylist *groups, mls_bytes group_id) {
   np_mls_group_data *group = NULL;
@@ -176,7 +208,7 @@ mls_bytes np_mls_signal_create(np_mls_client *sender, np_mls_package_type type) 
   np_tree_replace_str(packet, "np.mls.sender", np_treeval_new_s(sender->name));
   mls_bytes output = {0};
   output.size = packet->byte_size;
-  output.data = malloc(output.size);
+  output.data = calloc(1, output.size);
   np_tree2buffer((np_state_t*)sender->context, packet, output.data);
   np_tree_free(packet);
   return output;
@@ -189,7 +221,7 @@ mls_bytes np_mls_packet_create(np_mls_client *sender, np_mls_package_type type, 
   np_tree_replace_str(packet, "np.mls.data", np_treeval_new_bin(data.data, data.size));
   mls_bytes output = {0};
   output.size = packet->byte_size;
-  output.data = malloc(output.size);
+  output.data = calloc(1, output.size);
   np_tree2buffer((np_state_t*)sender->context, packet, output.data);
   np_tree_free(packet);
   return output;
