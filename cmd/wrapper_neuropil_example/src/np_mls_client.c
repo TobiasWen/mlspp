@@ -5,9 +5,13 @@
 #include <np_types.h>
 #include <np_util.h>
 #include <string.h>
+#include <unistd.h>
 
 bool authorize(np_context *context, struct np_token *id) {
   np_mls_client *client = np_get_userdata(context);
+  if(client->state_info.is_grp_lead) {
+    client->state_info.auths_left--;
+  }
   printf("[%s] authz %s from %s: %02X%02X%02X%02X%02X%02X%02X...\n",client->name, id->subject, id->issuer, id->public_key[0], id->public_key[1], id->public_key[2], id->public_key[3], id->public_key[4], id->public_key[5], id->public_key[6]);
   return true;
 }
@@ -22,7 +26,7 @@ bool receive_personal(np_context *context, struct np_message *message) {
     return false;
   }
   bool source_str_free = false;
-  np_mls_package_type type = np_treeval_to_str(source_type->val, &source_str_free);
+  np_mls_package_type type = np_treeval_i(source_type->val);
   // Get Sender
   np_tree_elem_t *source_sender = np_tree_find_str(packet, "np.mls.sender");
   if(source_sender == NULL) {
@@ -30,7 +34,10 @@ bool receive_personal(np_context *context, struct np_message *message) {
   }
   char *sender = np_treeval_to_str(source_sender->val, &source_str_free);
   printf("[%s] received from %s: %.*s\n",client->name, sender, message->data_length, message->data);
-  return true;//np_mls_handle_message(client, );
+  mls_bytes data = {0};
+  data.data = message->data;
+  data.size = message->data_length;
+  return np_mls_handle_message(client, type, sender, np_treeval_get_byte_size(source_sender->val), data);
 }
 
 bool receive_group(np_context *context, struct np_message *message) {
@@ -42,7 +49,6 @@ bool receive_group(np_context *context, struct np_message *message) {
 np_mls_client*
 new_np_mls_client(char name[], size_t name_size)
 {
-  // TODO: Sizeof malloc -> calloc and edit sizeof
   np_mls_client *client = calloc(1, sizeof(np_mls_client));
   client->name = calloc(1, name_size);
   client->neuropil_thread = calloc(1, sizeof(pthread_t));
@@ -147,6 +153,21 @@ void delete_np_mls_group_data(np_mls_group_data *group_data, const char *local_n
     free(group_data);
 }
 
+void np_mls_send_fresh_key_package(np_mls_client *client, char name[], size_t name_size) {
+  mls_bytes join = mls_pending_join_get_key_package(mls_start_join(client->mls_client));
+  mls_bytes key_package_data = np_mls_packet_create(client, NP_MLS_PACKAGE_KEYPACKAGE_RESPONSE, join);
+  char prefix[] = "mls/inbox/";
+  size_t subject_size = sizeof(prefix) + name_size;
+  char subject[subject_size + 1];
+  strncpy(subject, prefix, subject_size);
+  strncat(subject, name, subject_size);
+  struct np_mx_properties props = np_get_mx_properties(client->context, subject);
+  props.ackmode = NP_MX_ACK_NONE;
+  props.message_ttl = 40.0;
+  np_set_mx_properties(client->context, subject, props);
+  assert(np_mls_client_send(client, subject, key_package_data.data, key_package_data.size));
+}
+
 void np_mls_client_invite_client(np_mls_client *client, mls_bytes group_id, char name[], size_t name_size) {
   // Request KeyPackage from client
   mls_bytes request_data = np_mls_signal_create(client, NP_MLS_PACKAGE_KEYPACKAGE_REQUEST);
@@ -204,7 +225,7 @@ bool np_mls_bytes_equals(mls_bytes first, mls_bytes second) {
 
 mls_bytes np_mls_signal_create(np_mls_client *sender, np_mls_package_type type) {
   np_tree_t *packet = np_tree_create();
-  np_tree_replace_str(packet, "np.mls.type", np_treeval_new_ui(type));
+  np_tree_replace_str(packet, "np.mls.type", np_treeval_new_i(type));
   np_tree_replace_str(packet, "np.mls.sender", np_treeval_new_s(sender->name));
   mls_bytes output = {0};
   output.size = packet->byte_size;
@@ -216,7 +237,7 @@ mls_bytes np_mls_signal_create(np_mls_client *sender, np_mls_package_type type) 
 
 mls_bytes np_mls_packet_create(np_mls_client *sender, np_mls_package_type type, mls_bytes data) {
   np_tree_t *packet = np_tree_create();
-  np_tree_replace_int(packet, "np.mls.type", np_treeval_new_ui(type));
+  np_tree_replace_int(packet, "np.mls.type", np_treeval_new_i(type));
   np_tree_replace_str(packet, "np.mls.sender", np_treeval_new_s(sender->name));
   np_tree_replace_str(packet, "np.mls.data", np_treeval_new_bin(data.data, data.size));
   mls_bytes output = {0};
@@ -231,11 +252,18 @@ bool np_mls_handle_message(np_mls_client *client, np_mls_package_type package_ty
   switch(package_type) {
     case NP_MLS_PACKAGE_UNKNOWN:
       return true;
+    case NP_MLS_PACKAGE_HELLO:
+      printf("[%s] Got a Hello!\n", client->name);
+      break;
     case NP_MLS_PACKAGE_KEYPACKAGE_REQUEST:
+      printf("[%s] Got a Key Package Request!\n", client->name);
+      np_mls_send_fresh_key_package(client, sender, sender_size);
       return true;
     case NP_MLS_PACKAGE_KEYPACKAGE_RESPONSE:
+      printf("[%s] Got a Key Package Response!\n", client->name);
       return true;
     case NP_MLS_PACKAGE_WELCOME:
+      printf("[%s] Got a Welcome message!\n", client->name);
       return true;
   }
   return false;

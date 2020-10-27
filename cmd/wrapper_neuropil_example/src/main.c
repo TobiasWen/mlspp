@@ -28,7 +28,7 @@ main()
   np_mls_client* alice = NULL;
   np_mls_client* bob = NULL;
   np_mls_client* charlie = NULL;
-
+  mls_bytes group_id = {};
   np_mls_api_example_sm current_state = NP_MLS_STATE_BOOTSTRAP;
   isRunning = true;
   while (isRunning) {
@@ -38,6 +38,13 @@ main()
         alice = new_np_mls_client("alice", 5);
         bob = new_np_mls_client("bob", 3);
         charlie = new_np_mls_client("charlie", 7);
+
+        // Setup state
+        int client_count = 2;
+        alice->state_info.is_grp_lead = true;
+        alice->state_info.auths_left = client_count;
+        alice->state_info.verifications_left = client_count;
+
         // Join neuropil network
         np_mls_client_join_network(alice, "*:udp4:localhost:2345", 1234);
         np_mls_client_join_network(bob, "*:udp4:localhost:2345", 3456);
@@ -47,7 +54,6 @@ main()
         break;
       }
       case NP_MLS_STATE_CREATION: {
-        mls_bytes group_id = {};
         group_id.data = (uint8_t*)calloc(4, sizeof(uint8_t));
         group_id.size = 4;
         group_id.data[0] = 0;
@@ -61,23 +67,45 @@ main()
       }
       case NP_MLS_STATE_ADDITION: {
         // Say Hello
-        // Wait for authorize
-        // Request Key Package
-        // Send Welcome Message
-        // Wait for verification
+        if(!alice->state_info.hellos_sent) {
+          np_mls_say_hello(alice, "bob", 3);
+          np_mls_say_hello(alice, "charlie", 7);
+          np_mls_say_hello(bob, "alice", 5);
+          np_mls_say_hello(charlie, "alice", 5);
+          alice->state_info.hellos_sent = true;
+        }
+        if(alice->state_info.auths_left > 0) {
+          sleep(5);
+          break;
+        }
+        if(!alice->state_info.invites_sent) {
+          printf("Sending invites...\n");
+          np_mls_client_invite_client(alice, group_id, "bob", 3);
+          np_mls_client_invite_client(alice, group_id, "charlie", 7);
+          alice->state_info.invites_sent = true;
+        }
+        if(alice->state_info.verifications_left > 0) {
+          break;
+        }
+        // Transition to update state
+        current_state = NP_MLS_STATE_UPDATE;
         break;
       }
       case NP_MLS_STATE_UPDATE: {
+        // Transition to Remove state
+        current_state = NP_MLS_STATE_REMOVE;
         break;
       }
       case NP_MLS_STATE_REMOVE: {
+        // Transition to Cleanup state
+        current_state = NP_MLS_STATE_CLEANUP;
         break;
       }
       case NP_MLS_STATE_CLEANUP: {
         break;
       }
     }
-    sleep(1);
+    sleep(3);
   }
   /*////////// DRAMATIS PERSONAE ///////////
   // Create Clients

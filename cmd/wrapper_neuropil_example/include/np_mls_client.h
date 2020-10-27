@@ -1,5 +1,6 @@
 #pragma once
 #include "arraylist.h"
+#include "hashtable.h"
 #include "mlspp_wrapper.h"
 #include "neuropil.h"
 #include <np_types.h>
@@ -24,8 +25,17 @@ typedef struct {
 } np_mls_group_data;
 
 typedef struct {
+  bool is_grp_lead;
+  bool hellos_sent;
+  bool invites_sent;
+  int auths_left;
+  int verifications_left;
+} np_mls_client_state_info;
+
+typedef struct {
     struct np_settings cfg;
     struct np_context *context;
+    np_mls_client_state_info state_info;
     char *name;
     size_t name_size;
     bool isRunning;
@@ -54,6 +64,7 @@ void np_mls_say_hello(np_mls_client* client, char name[], size_t name_size);
 void np_mls_client_invite_client(np_mls_client* client, mls_bytes group_id, char name[], size_t name_size);
 void np_mls_client_create_group(np_mls_client* client, mls_bytes group_id);
 void delete_np_mls_group_data(np_mls_group_data *group_data, const char *local_name);
+void np_mls_send_fresh_key_package(np_mls_client *client, char name[], size_t name_size);
 np_mls_group_data* np_mls_group_find_by_id(arraylist *groups, mls_bytes group_id);
 bool np_mls_bytes_equals(mls_bytes first, mls_bytes second);
 mls_bytes np_mls_signal_create(np_mls_client *sender, np_mls_package_type type);
