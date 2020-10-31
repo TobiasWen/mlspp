@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#define _GNU_SOURCE
 #include "section.h"
 #include "err.h"
 
@@ -41,6 +40,18 @@
 # define ElfW_(e, t)     ElfW__(e, _ ## t)
 # define ElfW__(e, t)    e ## t
 #endif
+
+static size_t page_size(void) {
+    static size_t page_size;
+    if (!page_size) {
+        page_size = 0x1000;
+        long v = sysconf(_SC_PAGESIZE);
+        if (v > 0) {
+            page_size = v;
+        }
+    }
+    return page_size;
+}
 
 struct mod_handle {
     int fd;
@@ -169,7 +180,7 @@ static void close_module(struct mod_handle *mod)
 static const void *map_shdr(int fd, const ElfW (Shdr) *shdr,
         struct section_mapping *out)
 {
-    size_t shdr_map_off = shdr->sh_offset & ~0xfffllu;
+    size_t shdr_map_off = shdr->sh_offset & ~(page_size() - 1);
     size_t shdr_map_len = shdr->sh_size + (shdr->sh_offset - shdr_map_off);
 
     const uint8_t *shdr_map = mmap(NULL, shdr_map_len,

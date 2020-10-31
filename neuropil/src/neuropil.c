@@ -47,10 +47,10 @@
 
 #include "core/np_comp_msgproperty.h"
 
-#include "mlspp_wrapper.h"
 
 static const char *error_strings[] = {
     "",
+    "unknown error",
     "operation is not implemented",
     "could not init network",
     "argument is invalid",
@@ -175,7 +175,14 @@ np_context* np_new_context(struct np_settings * settings_in)
         context->enable_realm_server = false;
 
         // initialize message part handling cache
-        context->msg_part_cache = np_tree_create();
+        context->msg_part_cache  = np_tree_create();
+        struct np_bloom_optable_s decaying_op = {
+            .add_cb = _np_decaying_bloom_add,
+            .check_cb = _np_decaying_bloom_check,
+            .clear_cb = _np_standard_bloom_clear,
+        };
+        context->msg_part_filter = _np_decaying_bloom_create(1024, 8, 1);
+        context->msg_part_filter->op = decaying_op;
 
         _np_log_rotate(context, true);
     }
@@ -283,7 +290,7 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
             {
                 _np_shutdown_init(context);
                 np_threads_start_workers(context, context->settings->n_threads);                
-                TSP_SET(context->status, np_running);
+                TSP_SET(context->status, np_stopped);
 
                 log_msg(LOG_INFO, "neuropil successfully initialized: id:   %s", _np_key_as_str(context->my_identity));
                 log_msg(LOG_INFO, "neuropil successfully initialized: node: %s", _np_key_as_str(context->my_node_key));
@@ -409,8 +416,9 @@ enum np_return np_use_identity(np_context* ac, struct np_token identity) {
 
     _np_set_identity(context, imported_token);
     _np_aaatoken_update_attributes_signature(imported_token);
-
-    log_msg(LOG_INFO, "Using ident token %s", identity.uuid);
+    char tmp [65]={0};
+    np_dhkey_t imported_token_dhkey = np_aaatoken_get_fingerprint(imported_token, false);
+    log_msg(LOG_INFO, "Using ident token %s / %s", identity.uuid, np_id_str(tmp, &imported_token_dhkey));
     return ret;
 }
 
@@ -686,10 +694,11 @@ enum np_status np_get_status(np_context* ac) {
     return ret;
 }
 
-void np_id_str(char str[65], const np_id id)
+char * np_id_str(char str[65], const np_id id)
 {
     sodium_bin2hex(str, NP_FINGERPRINT_BYTES*2+1, id, NP_FINGERPRINT_BYTES);
     //ASSERT(r==0, "could not convert np_id to str code: %"PRId32, r);
+    return str;
 }
 
 void np_str_id(np_id (*id), const char str[64])

@@ -58,6 +58,92 @@ Using parameterized tests
   [FAIL] params::string
   [====] Synthesis: Tested: 11 | Passing: 0 | Failing: 11 | Crashing: 0 
 
+Using parameterized tests (verbose)
+
+  $ parameterized.c.bin --verbose
+  \[----\] Criterion v.* (re)
+  [====] Running 4 tests from params:
+  [RUN ] params::cleanup
+  [----] parameterized.c:79: Assertion Failed
+  [----]   
+  [----]   Parameters: (1, 2.000000)
+  [----]   
+  [FAIL] params::cleanup
+  [RUN ] params::cleanup
+  [----] parameterized.c:79: Assertion Failed
+  [----]   
+  [----]   Parameters: (3, 4.000000)
+  [----]   
+  [FAIL] params::cleanup
+  [RUN ] params::cleanup
+  [----] parameterized.c:79: Assertion Failed
+  [----]   
+  [----]   Parameters: (5, 6.000000)
+  [----]   
+  [FAIL] params::cleanup
+  [RUN ] params::multiple
+  [----] parameterized.c:35: Assertion Failed
+  [----]   
+  [----]   Parameters: (1, 2.000000)
+  [----]   
+  [FAIL] params::multiple
+  [RUN ] params::multiple
+  [----] parameterized.c:35: Assertion Failed
+  [----]   
+  [----]   Parameters: (3, 4.000000)
+  [----]   
+  [FAIL] params::multiple
+  [RUN ] params::multiple
+  [----] parameterized.c:35: Assertion Failed
+  [----]   
+  [----]   Parameters: (5, 6.000000)
+  [----]   
+  [FAIL] params::multiple
+  [RUN ] params::simple
+  [----] parameterized.c:14: Assertion Failed
+  [----]   
+  [----]   Parameter: 1
+  [----]   
+  [FAIL] params::simple
+  [RUN ] params::simple
+  [----] parameterized.c:14: Assertion Failed
+  [----]   
+  [----]   Parameter: 2
+  [----]   
+  [FAIL] params::simple
+  [RUN ] params::simple
+  [----] parameterized.c:14: Assertion Failed
+  [----]   
+  [----]   Parameter: 3
+  [----]   
+  [FAIL] params::simple
+  [RUN ] params::string
+  [----] parameterized.c:113: Assertion Failed
+  [----]   
+  [----]   string: Hello
+  [----]   
+  [FAIL] params::string
+  [RUN ] params::string
+  [----] parameterized.c:113: Assertion Failed
+  [----]   
+  [----]   string: World
+  [----]   
+  [FAIL] params::string
+  [====] Synthesis: Tested: 11 | Passing: 0 | Failing: 11 | Crashing: 0 
+
+Parameterized tests should be listed as one test
+
+  $ parameterized.c.bin --list
+  params: 4 tests
+  |-- cleanup
+  |-- multiple
+  |-- simple
+  `-- string
+
+C++ equivalents
+
+  $ [ "$CXX_SUPPORT" = 1 ] || exit 80
+
   $ parameterized.cc.bin
   [----] parameterized.cc:72: Assertion Failed
   [----]   
@@ -116,81 +202,8 @@ Using parameterized tests
   [FAIL] params::string
   [====] Synthesis: Tested: 11 | Passing: 0 | Failing: 11 | Crashing: 0 
 
-Using parameterized tests (verbose)
-
-  $ parameterized.c.bin --verbose
-  [----] Criterion v2.3.3
-  [====] Running 4 tests from params:
-  [RUN ] params::cleanup
-  [----] parameterized.c:79: Assertion Failed
-  [----]   
-  [----]   Parameters: (1, 2.000000)
-  [----]   
-  [FAIL] params::cleanup
-  [RUN ] params::cleanup
-  [----] parameterized.c:79: Assertion Failed
-  [----]   
-  [----]   Parameters: (3, 4.000000)
-  [----]   
-  [FAIL] params::cleanup
-  [RUN ] params::cleanup
-  [----] parameterized.c:79: Assertion Failed
-  [----]   
-  [----]   Parameters: (5, 6.000000)
-  [----]   
-  [FAIL] params::cleanup
-  [RUN ] params::multiple
-  [----] parameterized.c:35: Assertion Failed
-  [----]   
-  [----]   Parameters: (1, 2.000000)
-  [----]   
-  [FAIL] params::multiple
-  [RUN ] params::multiple
-  [----] parameterized.c:35: Assertion Failed
-  [----]   
-  [----]   Parameters: (3, 4.000000)
-  [----]   
-  [FAIL] params::multiple
-  [RUN ] params::multiple
-  [----] parameterized.c:35: Assertion Failed
-  [----]   
-  [----]   Parameters: (5, 6.000000)
-  [----]   
-  [FAIL] params::multiple
-  [RUN ] params::simple
-  [----] parameterized.c:14: Assertion Failed
-  [----]   
-  [----]   Parameter: 1
-  [----]   
-  [FAIL] params::simple
-  [RUN ] params::simple
-  [----] parameterized.c:14: Assertion Failed
-  [----]   
-  [----]   Parameter: 2
-  [----]   
-  [FAIL] params::simple
-  [RUN ] params::simple
-  [----] parameterized.c:14: Assertion Failed
-  [----]   
-  [----]   Parameter: 3
-  [----]   
-  [FAIL] params::simple
-  [RUN ] params::string
-  [----] parameterized.c:113: Assertion Failed
-  [----]   
-  [----]   string: Hello
-  [----]   
-  [FAIL] params::string
-  [RUN ] params::string
-  [----] parameterized.c:113: Assertion Failed
-  [----]   
-  [----]   string: World
-  [----]   
-  [FAIL] params::string
-  [====] Synthesis: Tested: 11 | Passing: 0 | Failing: 11 | Crashing: 0 
-
   $ parameterized.cc.bin --verbose
-  [----] Criterion v2.3.3
+  \[----\] Criterion v.* (re)
   [====] Running 4 tests from params:
   [RUN ] params::cleanup
   [----] parameterized.cc:72: Assertion Failed
@@ -260,11 +273,3 @@ Using parameterized tests (verbose)
   [FAIL] params::string
   [====] Synthesis: Tested: 11 | Passing: 0 | Failing: 11 | Crashing: 0 
 
-Parameterized tests should be listed as one test
-
-  $ parameterized.c.bin --list
-  params: 4 tests
-  |-- cleanup
-  |-- multiple
-  |-- simple
-  `-- string

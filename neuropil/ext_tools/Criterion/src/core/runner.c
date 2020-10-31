@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  */
 #define CRITERION_LOGGING_COLORS
+#include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
-#include <csptr/smalloc.h>
-#include <nanomsg/nn.h>
+#include NN_H
 #include "criterion/internal/test.h"
 #include "criterion/options.h"
 #include "criterion/internal/ordered-set.h"
@@ -40,6 +40,8 @@
 #include "compat/posix.h"
 #include "compat/processor.h"
 #include "compat/kill.h"
+#include "csptr/smalloc.h"
+#include "string/diff.h"
 #include "string/extglobmatch.h"
 #include "string/i18n.h"
 #include "io/event.h"
@@ -48,7 +50,6 @@
 #include "abort.h"
 #include "client.h"
 #include "common.h"
-#include "config.h"
 #include "err.h"
 #include "report.h"
 #include "runner.h"
@@ -214,6 +215,7 @@ CR_API struct criterion_test_set *criterion_initialize(void)
     }
 
     init_i18n();
+    cri_diff_init();
 
 #ifndef ENABLE_VALGRIND_ERRORS
     VALGRIND_DISABLE_ERROR_REPORTING;

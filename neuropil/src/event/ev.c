@@ -1580,7 +1580,7 @@ static EV_ATOMIC_T have_monotonic; /* did clock_gettime (CLOCK_MONOTONIC) work? 
 
 #if EV_USE_FLOOR
 # include <math.h>
-# define ev_floor(v) floor(v)
+# define ev_floor(v) floor (v)
 #else
 
 #include <float.h>

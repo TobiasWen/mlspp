@@ -21,23 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <locale.h>
 #include <getopt.h>
-#include <csptr/smalloc.h>
 #include "criterion/criterion.h"
 #include "criterion/options.h"
 #include "criterion/internal/ordered-set.h"
 #include "compat/posix.h"
 #include "compat/strtok.h"
 #include "core/runner.h"
+#include "csptr/smalloc.h"
 #include "io/output.h"
 #include "config.h"
 #include "common.h"
 #include "err.h"
 
-#if ENABLE_NLS
+#ifdef ENABLE_NLS
 # include <libintl.h>
 #endif
 
@@ -49,7 +48,7 @@
 # include <langinfo.h>
 #endif
 
-#define VERSION_MSG    "Tests compiled with Criterion v" VERSION "\n"
+#define VERSION_MSG    "Tests compiled with Criterion " VERSION "\n"
 
 #define USAGE                                               \
     VERSION_MSG "\n"                                        \
@@ -137,7 +136,7 @@ int list_tests(void)
         if (!tests)
             continue;
 
-        printf("%s: " CR_SIZE_T_FORMAT " test%s\n",
+        printf("%s: %" CRI_PRIuSIZE " test%s\n",
                 s->suite.name,
                 tests,
                 tests == 1 ? "" : "s");
@@ -282,7 +281,7 @@ CR_API int criterion_handle_args(int argc, char *argv[],
     };
 
     setlocale(LC_ALL, "");
-#if ENABLE_NLS
+#ifdef ENABLE_NLS
     textdomain(PACKAGE "-test");
 #endif
 

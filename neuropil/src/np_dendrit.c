@@ -335,7 +335,7 @@ bool _np_in_join(np_state_t* context, np_util_event_t msg_event)
 
     if (ident_token_ele != NULL)
     {    
-    	join_ident_token = np_token_factory_read_from_tree(context, ident_token_ele->val.value.tree);
+        join_ident_token = np_token_factory_read_from_tree(context, ident_token_ele->val.value.tree);
         if (NULL == join_ident_token || 
             false == _np_aaatoken_is_valid(join_ident_token, np_aaatoken_type_identity)) 
         {
@@ -375,10 +375,10 @@ bool _np_in_join(np_state_t* context, np_util_event_t msg_event)
             );
             goto __np_cleanup__;
         }
-
-        log_debug_msg(LOG_DEBUG, "JOIN request: identity %s would like to join", _np_key_as_str(join_node_key));
-        // everything is fine and we can continue        
-        authn_event.target_dhkey = join_ident_dhkey;
+        char tmp[65]={0};
+        log_debug_msg(LOG_DEBUG, "JOIN request: identity %s would like to join", np_id_str(tmp, &partner_of_node_dhkey));
+        // everything is fine and we can continue
+        authn_event.target_dhkey = msg_event.target_dhkey;
         authn_event.user_data = join_ident_token;
     }
     
@@ -622,7 +622,7 @@ bool _np_in_pheromone(np_state_t* context, np_util_event_t msg_event)
         
         _np_bloom_free(_scent);
     }
-
+    
     if (forward_pheromone_update) 
     {   // forward the received pheromone
         np_message_t* msg_out = pheromone_msg_in;
@@ -642,7 +642,6 @@ bool _np_in_pheromone(np_state_t* context, np_util_event_t msg_event)
         while (iter != NULL) 
         {
             if (!_np_dhkey_equal(&iter->val, &msg_from.value.dhkey)        &&
-                !_np_dhkey_equal(&iter->val, &_last_hop_dhkey)             &&
                 !_np_dhkey_equal(&iter->val, &context->my_node_key->dhkey) )
             {
                 pheromone_event.target_dhkey = iter->val;

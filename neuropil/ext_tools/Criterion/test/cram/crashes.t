@@ -6,33 +6,15 @@ Simple crashes & signal testing
   [FAIL] simple::wrong_signal
   [====] Synthesis: Tested: 3 | Passing: 1 | Failing: 2 | Crashing: 1 
 
-  $ signal.cc.bin
-  [----] signal.cc:14: Unexpected signal caught below this line!
-  [FAIL] simple::uncaught: CRASH!
-  [FAIL] simple::wrong_signal
-  [====] Synthesis: Tested: 3 | Passing: 1 | Failing: 2 | Crashing: 1 
-
 Simple crashes & signal testing (verbose)
 
   $ signal.c.bin --verbose
-  [----] Criterion v2.3.3
+  \[----\] Criterion v.* (re)
   [====] Running 3 tests from simple:
   [RUN ] simple::caught
   [PASS] simple::caught
   [RUN ] simple::uncaught
   [----] signal.c:14: Unexpected signal caught below this line!
-  [FAIL] simple::uncaught: CRASH!
-  [RUN ] simple::wrong_signal
-  [FAIL] simple::wrong_signal
-  [====] Synthesis: Tested: 3 | Passing: 1 | Failing: 2 | Crashing: 1 
-
-  $ signal.cc.bin --verbose
-  [----] Criterion v2.3.3
-  [====] Running 3 tests from simple:
-  [RUN ] simple::caught
-  [PASS] simple::caught
-  [RUN ] simple::uncaught
-  [----] signal.cc:14: Unexpected signal caught below this line!
   [FAIL] simple::uncaught: CRASH!
   [RUN ] simple::wrong_signal
   [FAIL] simple::wrong_signal
@@ -45,15 +27,10 @@ Crashes outside of the test
   [----] Warning! The test `misc::teardown_crash` crashed during its setup or teardown.
   [====] Synthesis: Tested: 2 | Passing: 1 | Failing: 1 | Crashing: 1 
 
-  $ other-crashes.cc.bin
-  [----] Warning! The test `misc::setup_crash` crashed during its setup or teardown.
-  [----] Warning! The test `misc::teardown_crash` crashed during its setup or teardown.
-  [====] Synthesis: Tested: 2 | Passing: 1 | Failing: 1 | Crashing: 1 
-
 Crashes outside of the test (verbose)
 
   $ other-crashes.c.bin --verbose
-  [----] Criterion v2.3.3
+  \[----\] Criterion v.* (re)
   [====] Running 2 tests from misc:
   [RUN ] misc::setup_crash
   [----] Warning! The test `misc::setup_crash` crashed during its setup or teardown.
@@ -62,8 +39,35 @@ Crashes outside of the test (verbose)
   [----] Warning! The test `misc::teardown_crash` crashed during its setup or teardown.
   [====] Synthesis: Tested: 2 | Passing: 1 | Failing: 1 | Crashing: 1 
 
+C++ equivalents
+
+  $ [ "$CXX_SUPPORT" = 1 ] || exit 80
+
+  $ signal.cc.bin
+  [----] signal.cc:14: Unexpected signal caught below this line!
+  [FAIL] simple::uncaught: CRASH!
+  [FAIL] simple::wrong_signal
+  [====] Synthesis: Tested: 3 | Passing: 1 | Failing: 2 | Crashing: 1 
+
+  $ signal.cc.bin --verbose
+  \[----\] Criterion v.* (re)
+  [====] Running 3 tests from simple:
+  [RUN ] simple::caught
+  [PASS] simple::caught
+  [RUN ] simple::uncaught
+  [----] signal.cc:14: Unexpected signal caught below this line!
+  [FAIL] simple::uncaught: CRASH!
+  [RUN ] simple::wrong_signal
+  [FAIL] simple::wrong_signal
+  [====] Synthesis: Tested: 3 | Passing: 1 | Failing: 2 | Crashing: 1 
+
+  $ other-crashes.cc.bin
+  [----] Warning! The test `misc::setup_crash` crashed during its setup or teardown.
+  [----] Warning! The test `misc::teardown_crash` crashed during its setup or teardown.
+  [====] Synthesis: Tested: 2 | Passing: 1 | Failing: 1 | Crashing: 1 
+
   $ other-crashes.cc.bin --verbose
-  [----] Criterion v2.3.3
+  \[----\] Criterion v.* (re)
   [====] Running 2 tests from misc:
   [RUN ] misc::setup_crash
   [----] Warning! The test `misc::setup_crash` crashed during its setup or teardown.
@@ -90,7 +94,7 @@ C++ Exceptions should be handled
 C++ Exceptions should be handled (verbose)
 
   $ exception.cc.bin --verbose
-  [----] Criterion v2.3.3
+  \[----\] Criterion v.* (re)
   [====] Running 6 tests from exception:
   [RUN ] exception::raise_any
   [----] exception::raise_any: Caught some unexpected exception during the test execution.
@@ -111,3 +115,4 @@ C++ Exceptions should be handled (verbose)
   [----] exception::raise_std_init: Caught an unexpected exception during the test initialization: Some exception message.
   [FAIL] exception::raise_std_init
   [====] Synthesis: Tested: 6 | Passing: 2 | Failing: 4 | Crashing: 0 
+
