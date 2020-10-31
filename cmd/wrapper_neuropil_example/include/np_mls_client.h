@@ -61,6 +61,7 @@ void np_mls_client_neuropil_loop(np_mls_client *client);
 bool np_mls_client_subscribe(np_mls_client* client, char subject[], bool (*handle_cb)(np_context*, struct np_message*));
 bool np_mls_client_send(np_mls_client* client, char subject[], const unsigned char message[], size_t message_len);
 void np_mls_say_hello(np_mls_client* client, char name[], size_t name_size);
+void np_mls_say_hello_subject(np_mls_client* client, char subject[], size_t subject_size);
 void np_mls_client_invite_client(np_mls_client* client, mls_bytes group_id, char name[], size_t name_size);
 void np_mls_client_create_group(np_mls_client* client, mls_bytes group_id);
 void delete_np_mls_group_data(np_mls_group_data *group_data, const char *local_name);

@@ -42,8 +42,26 @@ bool receive_personal(np_context *context, struct np_message *message) {
 
 bool receive_group(np_context *context, struct np_message *message) {
   np_mls_client *client = np_get_userdata(context);
-  printf("[%s] received: %.*s\n",client->name, message->data_length, message->data);
-  return true;
+  np_tree_t *packet = np_tree_create();
+  np_buffer2tree(context, message->data, packet);
+  // Get Type
+  np_tree_elem_t *source_type = np_tree_find_str(packet, "np.mls.type");
+  if(source_type == NULL) {
+    return false;
+  }
+  bool source_str_free = false;
+  np_mls_package_type type = np_treeval_i(source_type->val);
+  // Get Sender
+  np_tree_elem_t *source_sender = np_tree_find_str(packet, "np.mls.sender");
+  if(source_sender == NULL) {
+    return false;
+  }
+  char *sender = np_treeval_to_str(source_sender->val, &source_str_free);
+  printf("[%s] received from %s: %.*s\n",client->name, sender, message->data_length, message->data);
+  mls_bytes data = {0};
+  data.data = message->data;
+  data.size = message->data_length;
+  return np_mls_handle_message(client, type, sender, np_treeval_get_byte_size(source_sender->val), data);
 }
 
 np_mls_client*
@@ -65,6 +83,15 @@ new_np_mls_client(char name[], size_t name_size)
 }
 
 void np_mls_client_join_network(np_mls_client *client, char connection_string[], unsigned int port) {
+  /// TEMPORARY ///
+  // group subject
+  char *grp_subject = "mygroup\0";
+  size_t grp_subject_size = 8;
+
+  // leader subject
+  char *leader_subject = "mygroup_leader\0";
+  size_t leader_subject_size = 15;
+  ////////////////
   assert(np_ok == np_listen(client->context, "udp4", "localhost", port));
   assert(np_ok == np_join(client->context, connection_string));
   assert(np_ok == np_set_authorize_cb(client->context, authorize));
@@ -76,6 +103,9 @@ void np_mls_client_join_network(np_mls_client *client, char connection_string[],
   strncat(subject, client->name, subject_size);
   printf("Subscribing on subject: \"%s\"\n", subject);
   assert(np_ok == np_add_receive_cb(client->context, subject, receive_personal));
+  // Group subject
+  assert(np_ok == np_add_receive_cb(client->context, grp_subject, receive_group));
+  assert(np_ok == np_add_receive_cb(client->context, leader_subject, receive_group));
   // start neuropil thread
   client->isRunning = true;
   pthread_create(client->neuropil_thread, NULL, np_mls_client_neuropil_loop, client);
@@ -113,7 +143,14 @@ void np_mls_say_hello(np_mls_client* client, char name[], size_t name_size) {
   struct np_mx_properties props = np_get_mx_properties(client->context, subject);
   props.ackmode = NP_MX_ACK_NONE;
   props.message_ttl = 40.0;
+  props.cache_size = 1000000;
   np_set_mx_properties(client->context, subject, props);
+  assert(np_mls_client_send(client, subject, request_data.data, request_data.size));
+}
+
+void np_mls_say_hello_subject(np_mls_client* client, char subject[], size_t subject_size) {
+  mls_bytes request_data = np_mls_signal_create(client, NP_MLS_PACKAGE_HELLO);
+  struct np_mx_properties props = np_get_mx_properties(client->context, subject);
   assert(np_mls_client_send(client, subject, request_data.data, request_data.size));
 }
 
