@@ -70,8 +70,10 @@ np_mls_create_group(np_mls_client* client,
   // Convert subject to np_id
   unsigned char *subject_id = calloc(1, NP_FINGERPRINT_BYTES);
   np_get_id(subject_id, subject, 0);
+  char *subject_id_str = calloc(1, 65);
+  np_id_str(subject_id_str, subject_id);
   // Check if group already exists
-  void* existing_group = hashtable_get(client->groups, subject_id);
+  void* existing_group = hashtable_get(client->groups, subject_id_str);
   if (existing_group != NULL)
     return false;
 
@@ -90,10 +92,10 @@ np_mls_create_group(np_mls_client* client,
   new_group->id = group_id;
   new_group->isCreator = true;
   new_group->isInitialized = true;
-  new_group->subject = calloc(1, NP_FINGERPRINT_BYTES);
+  new_group->subject = calloc(1, strlen(subject));
   strcpy(new_group->subject, subject);
-  hashtable_set(client->groups, subject_id, new_group);
-  arraylist_add(client->group_subjects, subject_id);
+  hashtable_set(client->groups, subject_id_str, new_group);
+  arraylist_add(client->group_subjects, subject_id_str);
   return new_group;
 }
 
@@ -116,8 +118,13 @@ np_mls_subscribe(np_mls_client* client,
   // exchange
   struct np_mx_properties props = np_get_mx_properties(ac, subject);
   PendingJoin* join = mls_start_join(client->mls_client);
-  hashtable_set(client->pending_joins, subject, join);
-  arraylist_add(client->pending_subjects, subject);
+  // get np_id string of subject
+  unsigned char subject_id[NP_FINGERPRINT_BYTES];
+  np_get_id(subject_id, subject, 0);
+  char *subject_id_str = calloc(1, 65);
+  np_id_str(subject_id_str, subject_id);
+  hashtable_set(client->pending_joins, subject_id_str, join);
+  arraylist_add(client->pending_subjects, subject_id_str);
   mls_bytes kp = mls_pending_join_get_key_package(join);
   print_bin2hex(kp);
   np_set_mx_properties(ac, subject, props);
@@ -265,7 +272,9 @@ np_mls_handle_message(np_mls_client* client,
       group_id.size = group_id_size;
       memcpy(group_id.data, source_id->val.value.bin, group_id_size);
       // TODO Possible problem passing subject here?
-      return np_mls_handle_welcome(client, ac, welcome, message->subject, group_id);
+      char *subject_id_str = calloc(1, 65);
+      np_id_str(subject_id_str, message->subject);
+      return np_mls_handle_welcome(client, ac, welcome, subject_id_str, group_id);
     case NP_MLS_PACKAGE_UNKNOWN:
       break;
     default:

@@ -29,7 +29,7 @@ int main (int argc, char* argv[])
   np_default_settings(&cfg);
   np_context *ac = np_new_context(&cfg);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 1234));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 3456));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
@@ -45,8 +45,10 @@ int main (int argc, char* argv[])
 
   unsigned char subject_id[NP_FINGERPRINT_BYTES];
   np_get_id(subject_id, "mysubject", 0);
+  char subject_id_str[65];
+  np_id_str(subject_id_str, subject_id);
   // TODO:: Maybe all the subjects has to be string too instead of id? Yes they do!
-  np_mls_create_group(mls_client, subject_id, local_fingerprint);
+  //np_mls_create_group(mls_client, "mysubject", mls_client->id);
   assert(np_ok == np_mls_subscribe(mls_client, ac, "mysubject", receive));
   enum np_return status;
 
@@ -69,8 +71,10 @@ bool authorize (np_context *ac, struct np_token *id)
 
   unsigned char subject_id[NP_FINGERPRINT_BYTES];
   np_get_id(subject_id, id->subject, 0);
+  char subject_id_str[65];
+  np_id_str(subject_id_str, subject_id);
   // add user to group if local client is group leader
-  np_mls_group *group = hashtable_get(client->groups, subject_id);
+  np_mls_group *group = hashtable_get(client->groups, subject_id_str);
   if(group != NULL && group->isCreator == true) {
     mls_bytes add = mls_session_add(group->local_session, kp);
     mls_bytes add_proposals[] = { add };
