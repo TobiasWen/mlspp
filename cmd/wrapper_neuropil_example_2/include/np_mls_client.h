@@ -5,6 +5,7 @@
 #include "hashtable.h"
 #include "mlspp_wrapper.h"
 #include "neuropil.h"
+#include "pthread.h"
 
 static const char* NP_MLS_KP_KEY = "np.mls.kp";
 
@@ -27,6 +28,7 @@ typedef enum  {
 typedef struct {
   mls_bytes id;
   Session *local_session;
+  arraylist *added_clients;
   char *subject;
   bool isCreator;
   bool isInitialized;
@@ -39,6 +41,7 @@ typedef struct {
   arraylist *group_subjects;
   hashtable *pending_joins;
   arraylist *pending_subjects;
+  pthread_mutex_t *lock;
 } np_mls_client;
 
 // client creation/deletion
@@ -53,13 +56,14 @@ void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);
 enum np_return np_mls_send(np_mls_client *client, np_context *ac, const char *subject, const unsigned char* message, size_t length);
 
 // network packets
-mls_bytes np_mls_create_packet_userspace(np_context *ac, mls_bytes data);
+mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);
 mls_bytes np_mls_create_packet_group_operation(np_context *ac, np_mls_group_operation op, mls_bytes data, mls_bytes commit);
-mls_bytes np_mls_create_packet_welcome(np_context* ac, mls_bytes data, mls_bytes group_id);
+mls_bytes np_mls_create_packet_welcome(np_context* ac, mls_bytes data, mls_bytes group_id, char *target_id);
 
 // handle packets
 bool np_mls_handle_message(np_mls_client *client, np_context *ac, struct np_message* message);
 bool np_mls_handle_welcome(np_mls_client *client, np_context *ac, mls_bytes welcome, const char *subject, mls_bytes group_id);
+bool np_mls_handle_usersprace(np_mls_client *client, np_context *ac, mls_bytes message, const char *subject);
 
 // util
 void print_bin2hex(mls_bytes bytes);

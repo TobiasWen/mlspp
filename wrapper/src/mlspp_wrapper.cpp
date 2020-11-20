@@ -124,6 +124,33 @@ extern "C"
     return handle_session->handle(handshake_bytes);
   }
 
+  extern mls_bytes mls_protect(Session* session, mls_bytes plaintext) {
+    auto plaintext_bytes =
+      bytes(plaintext.data, plaintext.data + plaintext.size);
+    auto encrypted_bytes = ((mls::Session*)session)->protect(plaintext_bytes);
+    mls_bytes encrypted = {};
+    encrypted.data = (uint8_t*)malloc(encrypted_bytes.size());
+    encrypted.size = encrypted_bytes.size();
+    mls_copy_bytes(&encrypted, &encrypted_bytes);
+    return encrypted;
+  }
+
+  extern mls_bytes mls_unprotect(Session* session, mls_bytes ciphertext) {
+    auto ciphertext_bytes =
+      bytes(ciphertext.data, ciphertext.data + ciphertext.size);
+    try {
+      auto decrypted_bytes = ((mls::Session*)session)->unprotect(ciphertext_bytes);
+      mls_bytes decrypted = {};
+      decrypted.data = (uint8_t*)malloc(decrypted_bytes.size());
+      decrypted.size = decrypted_bytes.size();
+      mls_copy_bytes(&decrypted, &decrypted_bytes);
+      return decrypted;
+    } catch (mls::MissingStateError error) {
+      // NOOP
+    }
+    return ciphertext;
+  }
+
   extern void verify(const char label[], Session* alice, Session* bob)
   {
     std::string str_label = label;

@@ -48,6 +48,8 @@ extern "C"
                                             mls_bytes proposals[],
                                             size_t proposals_size);
   extern bool mls_session_handle(Session* session, mls_bytes handshake_data);
+  extern mls_bytes mls_protect(Session* session, mls_bytes plaintext);
+  extern mls_bytes mls_unprotect(Session* session, mls_bytes ciphertext);
   extern void verify(const char label[], Session* alice, Session* bob);
 
   // Destructor Wrapper
