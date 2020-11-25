@@ -1,7 +1,7 @@
 #include "np_mls_client.h"
 #include "assert.h"
 #include "stdlib.h"
-#include <np_tree.h>
+#include <util/np_tree.h>
 #include <np_types.h>
 #include <np_util.h>
 #include <string.h>

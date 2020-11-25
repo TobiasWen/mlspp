@@ -17,13 +17,16 @@
 #include "neuropil_data.h"
 #include "neuropil_attributes.h"
 
-#include "np_dhkey.h"
 
-#include "util/np_event.h"
+#include "core/np_comp_msgproperty.h"
 #include "core/np_comp_node.h"
+#include "util/np_event.h"
+
 
 #include "np_aaatoken.h"
+#include "np_attributes.h"
 #include "np_bootstrap.h"
+#include "np_dhkey.h"
 #include "np_event.h"
 #include "np_jobqueue.h"
 #include "np_key.h"
@@ -40,12 +43,11 @@
 #include "np_threads.h"
 #include "np_time.h"
 #include "np_token_factory.h"
-#include "np_tree.h"
-#include "np_treeval.h"
+#include "util/np_tree.h"
+#include "util/np_treeval.h"
 #include "np_types.h"
 #include "np_util.h"
 
-#include "core/np_comp_msgproperty.h"
 
 
 static const char *error_strings[] = {
@@ -264,7 +266,7 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
 
             np_aaatoken_t* node_token = _np_token_factory_new_node_token(context, np_proto, np_host, np_service);
             _np_set_identity(context, node_token);
-
+            
             // initialize routing table
             if (_np_route_init(context, context->my_node_key)== false)
             {
@@ -412,13 +414,13 @@ enum np_return np_use_identity(np_context* ac, struct np_token identity) {
     np_ident_private_token_t* imported_token = np_token_factory_new_identity_token(ac,  identity.expires_at, &identity.secret_key);
     
     np_user4aaatoken(imported_token, &identity);
-	_np_aaatoken_set_signature(imported_token, NULL);
+    _np_aaatoken_set_signature(imported_token, NULL);
 
     _np_set_identity(context, imported_token);
     _np_aaatoken_update_attributes_signature(imported_token);
     char tmp [65]={0};
     np_dhkey_t imported_token_dhkey = np_aaatoken_get_fingerprint(imported_token, false);
-    log_msg(LOG_INFO, "Using ident token %s / %s", identity.uuid, np_id_str(tmp, &imported_token_dhkey));
+    log_msg(LOG_INFO, "neuropil successfully initialized: id:   %s", _np_key_as_str(context->my_identity));
     return ret;
 }
 
@@ -461,9 +463,25 @@ bool np_has_receiver_for(np_context*ac, const char * subject)
 
     np_ctx_cast(ac);
     bool ret = false;
-    if (_np_route_my_key_has_connection(context)) {
-        ret = true;
-    }
+
+    np_dhkey_t prop_dhkey = _np_msgproperty_dhkey(OUTBOUND, subject);
+    np_key_t*  prop_key   = _np_keycache_find(context, prop_dhkey);
+
+    np_sll_t(np_aaatoken_ptr, receiver_list);
+    sll_init(np_aaatoken_ptr, receiver_list);
+
+    np_dhkey_t null_dhkey = {0};
+    _np_intent_get_all_receiver(prop_key, null_dhkey, &receiver_list);
+
+    if (sll_size(receiver_list) > 0) ret = true;
+
+    np_aaatoken_unref_list(receiver_list, "_np_intent_get_all_receiver");
+    sll_free(np_aaatoken_ptr, receiver_list);
+    np_unref_obj(np_key_t, prop_key, "_np_keycache_find");
+
+    // if (_np_route_my_key_has_connection(context)) {
+    // ret = true;
+    // }
     return ret;
 }
 
@@ -536,7 +554,7 @@ enum np_return np_send_to(np_context* ac, const char* subject, const unsigned ch
     np_util_event_t send_event = { .type=(evt_internal | evt_message), .context=ac, .user_data=msg_out, .target_dhkey=target_dhkey };
     // _np_keycache_handle_event(context, subject_dhkey, send_event, false);
 
-    if(!np_jobqueue_submit_event(context, 0.0, subject_dhkey, send_event, "event: userspace message delivery request")){
+  if(!np_jobqueue_submit_event(context, NP_PI, subject_dhkey, send_event, "event: userspace message delivery request")){
         log_msg(LOG_WARN, "rejecting possible sending of message, please check jobqueue settings!");
     }
 
@@ -568,7 +586,7 @@ bool __np_receive_callback_converter(np_context* ac, const np_message_t* const m
         }else{
 
             np_datablock_t * dt = msg_attributes->val.value.bin;
-            size_t attr_size;
+            // size_t attr_size;
             if(sizeof(message.attributes) >= msg_attributes->val.size) {
                 memcpy(message.attributes, dt, msg_attributes->val.size);
             }

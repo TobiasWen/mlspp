@@ -12,7 +12,7 @@
 #include "np_types.h"
 #include "np_messagepart.h"
 #include "np_threads.h"
-#include "np_list.h"
+#include "util/np_list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +51,7 @@ struct np_message_s
 } NP_API_INTERN;
 
 
-_NP_GENERATE_MEMORY_PROTOTYPES(np_message_t);
+_NP_GENERATE_MEMORY_PROTOTYPES(np_message_t)
 
 
 /** message_create / free:
@@ -63,7 +63,7 @@ NP_API_INTERN
 void _np_message_create(np_message_t* msg, np_dhkey_t to, np_dhkey_t from, const char* subject, np_tree_t* the_data);
 
 NP_API_INTERN
-void _np_message_encrypt_payload(np_message_t* msg, np_aaatoken_t* tmp_token);
+void _np_message_encrypt_payload(np_message_t* msg, np_sll_t(np_aaatoken_ptr,tmp_token) );
 NP_API_INTERN
 bool _np_message_decrypt_payload(np_message_t* msg, np_aaatoken_t* tmp_token);
 

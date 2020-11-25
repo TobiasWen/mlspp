@@ -27,7 +27,6 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_key.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_keycache.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_bootstrap.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/np_bloom.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_log.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_memory.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_message.c
@@ -35,11 +34,8 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_node.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_pheromones.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_route.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/np_tree.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_util.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/np_treeval.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_threads.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/np_scache.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_event.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_messagepart.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_statistics.c
@@ -54,6 +50,10 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_intent.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_node.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_alias.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_bloom.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_tree.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_treeval.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_scache.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_statemachine.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/prometheus/prometheus.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/sysinfo/np_sysinfo.c

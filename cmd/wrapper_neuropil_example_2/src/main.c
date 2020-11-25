@@ -33,7 +33,7 @@ main(int argc, char* argv[])
   np_default_settings(&cfg);
   np_context* ac = np_new_context(&cfg);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 4567));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 5678));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
@@ -121,19 +121,19 @@ authorize(np_context* ac, struct np_token* id)
       // create and send welcome on group channel
       mls_bytes welcome_packet =
         np_mls_create_packet_welcome(ac, welcome_commit.data1, group->id, id->issuer);
-      assert(
-        np_ok ==
-        np_mls_send(
-          client, ac, id->subject, welcome_packet.data, welcome_packet.size));
       // add client to added_clients list
       char *client_id = calloc(1, 65);
       strcpy(client_id, id->issuer);
       arraylist_add(group->added_clients, client_id);
       // create and send commit encrypted on group channel
       mls_bytes add_commit = np_mls_create_packet_group_operation(
-        ac, MLS_GRP_OP_ADD, add, welcome_commit.data2);
+        ac, MLS_GRP_OP_ADD, id->issuer, add, welcome_commit.data2);
       mls_session_handle(group->local_session, welcome_commit.data2);
       np_mls_send(client, ac, id->subject, add_commit.data, add_commit.size);
+      assert(
+        np_ok ==
+        np_mls_send(
+          client, ac, id->subject, welcome_packet.data, welcome_packet.size));
       printf("Sent welcome!\n");
       // cleanup
       mls_delete_bytes(add_commit);
