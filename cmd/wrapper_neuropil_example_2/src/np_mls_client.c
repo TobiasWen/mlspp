@@ -149,8 +149,30 @@ np_mls_subscribe(np_mls_client* client,
 
 bool
 np_mls_unsubscribe(np_context* ac, const char* subject);
+
 void
-np_mls_update(np_mls_client* client, np_context* ac, const char* subject);
+np_mls_update(np_mls_client* client, np_context* ac, const char* subject) {
+  // get group from subject
+  unsigned char* subject_id = calloc(1, NP_FINGERPRINT_BYTES);
+  np_get_id(subject_id, subject, 0);
+  char* subject_id_str = calloc(1, 65);
+  np_id_str(subject_id_str, subject_id);
+  pthread_mutex_lock(client->lock);
+  np_mls_group* group = hashtable_get(client->groups, subject_id_str);
+  if(group != NULL) {
+    // create update
+    mls_bytes update = mls_session_update(group->local_session);
+    mls_bytes update_proposals[] = { update };
+    mls_bytes_tuple update_commit = mls_session_commit(group->local_session, update_proposals, 1);
+    mls_session_handle(group->local_session, update_commit.data2);
+    // send update on group channel
+    mls_bytes message = np_mls_create_packet_group_operation(ac, MLS_GRP_OP_ADD, "", update_commit.data1, update_commit.data2);
+    assert(np_ok == np_mls_send(client, ac, subject, message.data, message.size));
+  } else {
+    printf("Received update for missing group!\n");
+  }
+  pthread_mutex_unlock(client->lock);
+}
 
 enum np_return
 np_mls_send(np_mls_client* client,
@@ -179,7 +201,7 @@ np_mls_create_packet_userspace(np_context* ac,
   printf("Encrypted data: \n");
   print_bin2hex(data_encrypted);
   mls_bytes decrypted = mls_unprotect(local_session, data_encrypted);
-  printf("Encrypted data decrypted (lol): \n");
+  printf("Encrypted data decrypted: \n");
   print_bin2hex(decrypted);
   np_tree_replace_str(
     packet,
@@ -211,6 +233,7 @@ np_mls_create_packet_group_operation(np_context* ac,
       type = NP_MLS_PACKAGE_UPDATE;
       break;
     case MLS_GRP_OP_REMOVE:
+      np_tree_replace_str(packet, "np.mls.removed.id", np_treeval_new_s(relevant_client_id));
       type = NP_MLS_PACKAGE_REMOVE;
       break;
   }
@@ -465,11 +488,23 @@ np_mls_handle_group_operation(np_mls_client* client,
       mls_session_handle(group->local_session, operation_data);
       mls_session_handle(group->local_session, commit_data);
       break;
-    case MLS_GRP_OP_REMOVE:
+    case MLS_GRP_OP_REMOVE: {
+      np_tree_elem_t* client_id_tree_elem =
+        np_tree_find_str(tree, "np.mls.removed.id");
+      if (client_id_tree_elem == NULL) {
+        return true;
+      }
+      char* client_id = client_id_tree_elem->val.value.s;
+      if (strcmp(client_id, client->id) == 0) {
+        np_mls_delete_group(group);
+        // TODO: Unsubscribe or remove cb
+        return true;
+      }
       // handle remove and commit
       mls_session_handle(group->local_session, operation_data);
       mls_session_handle(group->local_session, commit_data);
       break;
+    }
   }
   free(tree);
   return true;

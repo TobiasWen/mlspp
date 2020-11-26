@@ -33,7 +33,7 @@ main(int argc, char* argv[])
   np_default_settings(&cfg);
   np_context* ac = np_new_context(&cfg);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 5678));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 3456));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
@@ -78,6 +78,7 @@ main(int argc, char* argv[])
       np_mls_send(mls_client, ac, "mysubject", packet.data, packet.size);
       mls_delete_bytes(packet);
       mls_delete_bytes(test_data);
+      np_mls_update(mls_client, ac, "mysubject");
       printf("Send testdata userspace message!\n");
     }
   } while (np_ok == status);
