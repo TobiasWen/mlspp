@@ -51,6 +51,8 @@ extern "C"
   extern mls_bytes mls_protect(Session* session, mls_bytes plaintext);
   extern mls_bytes mls_unprotect(Session* session, mls_bytes ciphertext);
   extern void verify(const char label[], Session* alice, Session* bob);
+  extern uint32_t mls_get_session_group_index(Session* session);
+
 
   // Destructor Wrapper
   extern void mls_delete_client(Client* client);

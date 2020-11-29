@@ -159,7 +159,11 @@ extern "C"
     verify(str_label, *alice_session, *bob_session);
   }
 
-  // Destructor Wrapper
+  extern uint32_t mls_get_session_group_index(Session* session) {
+    return ((mls::Session*)session)->index();
+  }
+
+// Destructor Wrapper
 
   extern void mls_delete_client(Client* client) { delete (mls::Client*)client; }
 

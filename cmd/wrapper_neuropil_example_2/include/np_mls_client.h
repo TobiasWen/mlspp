@@ -1,5 +1,4 @@
-#ifndef _TMP_CLION_CLANG_TIDY_NP_MLS_CLIENT_H
-#define _TMP_CLION_CLANG_TIDY_NP_MLS_CLIENT_H
+#pragma once
 
 #include "arraylist.h"
 #include "hashtable.h"
@@ -12,11 +11,10 @@ static const char* NP_MLS_KP_KEY = "np.mls.kp";
 typedef enum {
   NP_MLS_PACKAGE_UNKNOWN = 0x000,
   NP_MLS_PACKAGE_USERSPACE = 0x001,
-  NP_MLS_PACKAGE_KEYPACKAGE = 0x002,
-  NP_MLS_PACKAGE_ADD = 0x003,
-  NP_MLS_PACKAGE_UPDATE = 0x004,
-  NP_MLS_PACKAGE_REMOVE = 0x005,
-  NP_MLS_PACKAGE_WELCOME = 0x006,
+  NP_MLS_PACKAGE_ADD = 0x002,
+  NP_MLS_PACKAGE_UPDATE = 0x003,
+  NP_MLS_PACKAGE_REMOVE = 0x004,
+  NP_MLS_PACKAGE_WELCOME = 0x005,
 } np_mls_packet_type;
 
 typedef enum  {
@@ -53,7 +51,9 @@ bool np_mls_delete_group(np_mls_group *group);
 bool np_mls_subscribe(np_mls_client *client, np_context *ac, const char* subject, np_receive_callback callback);
 bool np_mls_unsubscribe(np_context *ac, const char* subject);
 void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);
+void np_mls_remove(np_mls_client *client, uint32_t remove_index, np_context *ac, const char *subject);
 enum np_return np_mls_send(np_mls_client *client, np_context *ac, const char *subject, const unsigned char* message, size_t length);
+bool np_mls_get_group_index(np_mls_client *client, const char *subject, uint32_t *index_out);
 
 // network packets
 mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);
@@ -67,5 +67,6 @@ bool np_mls_handle_usersprace(np_mls_client *client, np_context *ac, mls_bytes m
 bool np_mls_handle_group_operation(np_mls_client *client, np_context *ac, np_mls_group_operation operation, struct np_message *message, const char *subject);
 
 // util
+
 void print_bin2hex(mls_bytes bytes);
-#endif
+

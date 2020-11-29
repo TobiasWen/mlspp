@@ -166,10 +166,37 @@ np_mls_update(np_mls_client* client, np_context* ac, const char* subject) {
     mls_bytes_tuple update_commit = mls_session_commit(group->local_session, update_proposals, 1);
     mls_session_handle(group->local_session, update_commit.data2);
     // send update on group channel
-    mls_bytes message = np_mls_create_packet_group_operation(ac, MLS_GRP_OP_ADD, "", update_commit.data1, update_commit.data2);
+    mls_bytes message = np_mls_create_packet_group_operation(ac, MLS_GRP_OP_UPDATE, "", update, update_commit.data2);
     assert(np_ok == np_mls_send(client, ac, subject, message.data, message.size));
+    mls_delete_bytes(update);
+    mls_delete_bytes_tuple(update_commit);
+    mls_delete_bytes(message);
   } else {
     printf("Received update for missing group!\n");
+  }
+  pthread_mutex_unlock(client->lock);
+}
+
+void np_mls_remove(np_mls_client *client, uint32_t remove_index, np_context *ac, const char *subject) {
+  // get group from subject
+  unsigned char* subject_id = calloc(1, NP_FINGERPRINT_BYTES);
+  np_get_id(subject_id, subject, 0);
+  char* subject_id_str = calloc(1, 65);
+  np_id_str(subject_id_str, subject_id);
+  pthread_mutex_lock(client->lock);
+  np_mls_group* group = hashtable_get(client->groups, subject_id_str);
+  if(group != NULL) {
+    // create update
+    mls_bytes remove = mls_session_remove(group->local_session, remove_index);
+    mls_bytes remove_proposals[] = { remove };
+    mls_bytes_tuple remove_commit = mls_session_commit(group->local_session, remove_proposals, 1);
+    mls_session_handle(group->local_session, remove_commit.data2);
+    // send update on group channel
+    mls_bytes message = np_mls_create_packet_group_operation(ac, MLS_GRP_OP_REMOVE, "", remove, remove_commit.data2);
+    assert(np_ok == np_mls_send(client, ac, subject, message.data, message.size));
+    mls_delete_bytes(remove);
+    mls_delete_bytes_tuple(remove_commit);
+    mls_delete_bytes(message);
   }
   pthread_mutex_unlock(client->lock);
 }
@@ -183,6 +210,21 @@ np_mls_send(np_mls_client* client,
 {
   // TODO: create check if client is in grp etc.
   return np_send(ac, subject, message, length);
+}
+
+bool np_mls_get_group_index(np_mls_client *client, const char *subject, uint32_t *index_out) {
+  // create np_id_str from subject
+  unsigned char* subject_id = calloc(1, NP_FINGERPRINT_BYTES);
+  np_get_id(subject_id, subject, 0);
+  char* subject_id_str = calloc(1, 65);
+  np_id_str(subject_id_str, subject_id);
+  // get group for np_id_str_subject
+  np_mls_group* group = hashtable_get(client->groups, subject_id_str);
+  if(group != NULL && index_out != NULL) {
+    index_out = mls_get_session_group_index(group->local_session);
+    return true;
+  }
+  return false;
 }
 
 // network packets

@@ -83,6 +83,11 @@ main(int argc, char* argv[])
     }
   } while (np_ok == status);
 
+  // remove self from group
+  uint32_t local_index = 0;
+  assert(np_mls_get_group_index(mls_client, "mysubject", &local_index));
+  np_mls_remove(mls_client, local_index, ac, "mysubject");
+
   return status;
 }
 
