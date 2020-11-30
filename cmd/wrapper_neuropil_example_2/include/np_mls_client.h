@@ -40,10 +40,12 @@ typedef struct {
 } np_mls_group;
 
 typedef struct {
-  char id[65];
+  char *id;
   Client *mls_client;
   hashtable *groups;
   arraylist *group_subjects;
+  hashtable *ids_to_subjects;
+  arraylist *ids;
   hashtable *pending_joins;
   arraylist *pending_subjects;
   pthread_mutex_t *lock;
@@ -57,6 +59,7 @@ bool np_mls_delete_group(np_mls_group *group);
 
 bool np_mls_subscribe(np_mls_client *client, np_context *ac, const char* subject, np_receive_callback callback);
 bool np_mls_unsubscribe(np_context *ac, const char* subject);
+bool np_mls_authorize(np_context *ac, struct np_token *id);
 void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);
 void np_mls_remove(np_mls_client *client, uint32_t remove_index, np_context *ac, const char *subject, const char* removed_client_id);
 void np_mls_remove_self(np_mls_client *client, np_context *ac, const char *subject);
@@ -64,6 +67,7 @@ bool np_mls_remove_from_local_group(np_mls_client *client, np_mls_group *group, 
 enum np_return np_mls_send(np_mls_client *client, np_context *ac, const char *subject, const unsigned char* message, size_t length);
 bool np_mls_get_group_index(np_mls_client *client, const char *subject, uint32_t *index_out);
 np_mls_group* np_mls_get_group_from_subject_id_str(np_mls_client *client, np_context *ac, const char *subject);
+mls_bytes extract_kp(struct np_token* id);
 
 // network packets
 mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);
@@ -73,7 +77,7 @@ mls_bytes np_mls_create_packet_welcome(np_context* ac, mls_bytes data, mls_bytes
 // handle packets
 bool np_mls_handle_message(np_mls_client *client, np_context *ac, struct np_message* message);
 bool np_mls_handle_welcome(np_mls_client *client, np_context *ac, mls_bytes welcome, const char *subject, mls_bytes group_id);
-bool np_mls_handle_usersprace(np_mls_client *client, np_context *ac, mls_bytes message, const char *subject);
+bool np_mls_handle_userspace(np_mls_client *client, np_context *ac, mls_bytes message, const char *subject);
 bool np_mls_handle_group_operation(np_mls_client *client, np_context *ac, np_mls_group_operation operation, struct np_message *message, const char *subject);
 
 // util
