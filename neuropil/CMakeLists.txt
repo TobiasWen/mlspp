@@ -45,6 +45,7 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_shutdown.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_token_factory.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/np_crypto.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/np_mls.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_identity.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_msgproperty.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/np_comp_intent.c
@@ -55,6 +56,8 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_treeval.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_scache.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_statemachine.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/arraylist.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/hashtable.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/prometheus/prometheus.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/sysinfo/np_sysinfo.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/http/np_http.c

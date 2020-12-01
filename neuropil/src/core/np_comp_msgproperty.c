@@ -270,6 +270,9 @@ np_msgproperty_t* _np_msgproperty_get_or_create(np_state_t* context, np_msg_mode
         ret->msg_subject = strndup(subject, 255);
         ret->mode_type = mode_type;
         ret->mep_type = ANY_TO_ANY;
+        ret->encryption_algorithm = NEUROPIL_ENCRYPTION;
+        ret->mls_is_creator = false;
+        ret->mls_connected = NULL;
         np_msgproperty_register(ret);
     } 
 
@@ -984,6 +987,8 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
     dest->max_parallel = src->max_threshold;
     dest->max_retry = src->retry;
 
+    dest->encryption_algorithm = src->encryption_algorithm;
+    dest->mls_is_creator = src->mls_is_creator;
     if(src->rep_subject != NULL) {
         strncpy(dest->reply_subject, src->rep_subject, 255);
     }
@@ -1026,9 +1031,12 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
 
 void np_msgproperty_from_user(np_state_t* context, np_msgproperty_t* dest, struct np_mx_properties* src) 
 {
-	assert(context != NULL);
+    assert(context != NULL);
     assert(src != NULL);
     assert(dest != NULL);
+
+    dest->encryption_algorithm = src->encryption_algorithm;
+    dest->mls_is_creator = src->mls_is_creator;
 
     if (src->intent_ttl > 0.0) {
         dest->token_max_ttl = src->intent_ttl;

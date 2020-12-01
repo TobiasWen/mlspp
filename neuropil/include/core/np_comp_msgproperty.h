@@ -320,6 +320,10 @@ struct np_msgproperty_s
 
     np_attributes_t attributes;
 
+    enum np_msg_encryption_algorithm encryption_algorithm;
+    bool mls_is_creator;
+
+    np_msgproperty_t* mls_connected;
 } NP_API_EXPORT;
 
 

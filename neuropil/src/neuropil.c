@@ -9,6 +9,7 @@
 #include <stddef.h>
 
 #include <inttypes.h>
+#include <np_mls.h>
 #include <unistd.h>
 
 #include "sodium.h"
@@ -26,6 +27,7 @@
 #include "np_aaatoken.h"
 #include "np_attributes.h"
 #include "np_bootstrap.h"
+#include "np_dendrit.h"
 #include "np_dhkey.h"
 #include "np_event.h"
 #include "np_jobqueue.h"
@@ -661,8 +663,11 @@ enum np_return np_set_mx_properties(np_context* ac, const char* subject, struct 
     // TODO: validate user_property
     struct np_mx_properties safe_user_property = user_property;
     safe_user_property.reply_subject[254] = 0;
- 
+
     np_msgproperty_t* property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, subject);
+    if(property->encryption_algorithm != MLS_ENCRYPTION && user_property.encryption_algorithm == MLS_ENCRYPTION) {
+      _np_mls_register_protocol_subject(context, subject, property);
+    }
     np_msgproperty_from_user(context, property, &safe_user_property);
 
     return ret;
@@ -672,7 +677,7 @@ enum np_return np_run(np_context* ac, double duration) {
     np_ctx_cast(ac);
     enum np_return ret = np_ok;
     np_thread_t * thread = _np_threads_get_self(context);
-    
+
     if (!__np_is_already_listening(context)) 
     {
         ret = np_listen(ac, _np_network_get_protocol_string(context, PASSIVE | IPv4), "localhost", 31415);

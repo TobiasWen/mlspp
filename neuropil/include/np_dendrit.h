@@ -64,6 +64,9 @@ bool _np_in_account(np_state_t* context, np_util_event_t msg_event);
 NP_API_INTERN
 bool _np_in_callback_wrapper(np_state_t* context, np_util_event_t msg_event);
 
+NP_API_INTERN
+bool _np_in_mls(np_context* ac, struct np_message* message); //TODO: Move to np_mls because its userspace
+
 #ifdef __cplusplus
 }
 #endif

@@ -220,11 +220,15 @@ extern "C" {
     enum np_mx_cache_policy { NP_MX_FIFO_REJECT, NP_MX_FIFO_PURGE, NP_MX_LIFO_REJECT, NP_MX_LIFO_PURGE } NP_ENUM;
     enum np_mx_ackmode      { NP_MX_ACK_NONE, NP_MX_ACK_DESTINATION, NP_MX_ACK_CLIENT } NP_ENUM;
 
+    enum np_msg_encryption_algorithm { NEUROPIL_ENCRYPTION, MLS_ENCRYPTION} NP_ENUM;
+
     struct np_mx_properties {
         char reply_subject[255] NP_PACKED(1);
         enum np_mx_ackmode ackmode;
         //enum np_mx_pattern pattern;  will be added later on
         enum np_mx_cache_policy cache_policy;
+        enum np_msg_encryption_algorithm encryption_algorithm;
+        bool mls_is_creator;
         uint16_t cache_size;
         uint8_t max_parallel, max_retry;
         double intent_ttl, intent_update_after;
