@@ -90,19 +90,14 @@ np_mls_create_group(np_mls_client* client,
                     const char* local_identifier)
 {
   // Convert subject to np_id
-  char* subject_id_str = get_np_id_string(subject);
+  char* subject_id_str = np_mls_get_id_string(subject);
   // Check if group already exists
   void* existing_group = hashtable_get(client->groups, subject_id_str);
   if (existing_group != NULL)
     return false;
 
   // Generate group id 5 values from 0 to 255
-  mls_bytes group_id = { 0 };
-  group_id.size = 5;
-  group_id.data = calloc(5, sizeof(uint8_t));
-  for (int i = 0; i < 5; i++) {
-    group_id.data[i] = rand() % (255 + 1);
-  }
+  mls_bytes group_id = np_mls_create_random_bytes(5);
 
   // Create new group
   Session* local_session = mls_begin_session(client->mls_client, group_id);
@@ -146,7 +141,7 @@ np_mls_subscribe(np_mls_client* client,
   struct np_mx_properties props = np_get_mx_properties(ac, subject);
   PendingJoin* join = mls_start_join(client->mls_client);
   // get np_id string of subject
-  char* subject_id_str = get_np_id_string(subject);
+  char* subject_id_str = np_mls_get_id_string(subject);
   // add subject to reverse lookup hashtable
   hashtable_set(client->ids_to_subjects, subject_id_str, subject);
   arraylist_add(client->ids, subject_id_str);
@@ -165,7 +160,7 @@ np_mls_subscribe(np_mls_client* client,
 bool np_mls_authorize(np_context *ac, struct np_token *id) {
   printf("Authorizing on subject %s  issuer:%s\n", id->subject, id->issuer);
   // Extract kp from token
-  mls_bytes kp = extract_kp(id);
+  mls_bytes kp = np_ml_extract_kp(id);
 
   // get np_mls_client from context
   np_mls_client* client = np_get_userdata(ac);
@@ -290,7 +285,7 @@ void np_mls_remove_self(np_mls_client *client, np_context *ac, const char *subje
   uint32_t local_index = 0;
   assert(np_mls_get_group_index(client, subject, &local_index));
   // get group from subject_id_str
-  char *subject_id_str = get_np_id_string(subject);
+  char *subject_id_str = np_mls_get_id_string(subject);
   np_mls_group *group = np_mls_get_group_from_subject_id_str(client, ac, subject_id_str);
   np_mls_remove(client, local_index, ac, subject_id_str, client->id);
   // delete group and remove from hashtable as well as array
@@ -301,7 +296,7 @@ bool np_mls_remove_from_local_group(np_mls_client *client, np_mls_group *group, 
   if(client != NULL && group != NULL && subject_id_str != NULL) {
     np_mls_delete_group(group);
     hashtable_remove(client->groups, subject_id_str);
-    assert(remove_string_elem_from_array(client->group_subjects, subject_id_str));
+    assert(np_mls_remove_string_elem_from_array(client->group_subjects, subject_id_str));
     // TODO: remove callback for subject
   }
 }
@@ -345,7 +340,7 @@ np_mls_group* np_mls_get_group_from_subject_id_str(np_mls_client *client, np_con
 }
 
 mls_bytes
-extract_kp(struct np_token* id)
+np_ml_extract_kp(struct np_token* id)
 {
   mls_bytes kp = { 0 };
   // Extract data
@@ -370,12 +365,12 @@ np_mls_create_packet_userspace(np_context* ac,
   // encrypt
   mls_bytes data_encrypted = mls_protect(local_session, data);
   printf("Plain data: \n");
-  print_bin2hex(data);
+  np_mls_print_bin2hex(data);
   printf("Encrypted data: \n");
-  print_bin2hex(data_encrypted);
+  np_mls_print_bin2hex(data_encrypted);
   mls_bytes decrypted = mls_unprotect(local_session, data_encrypted);
   printf("Encrypted data decrypted: \n");
-  print_bin2hex(decrypted);
+  np_mls_print_bin2hex(decrypted);
   np_tree_replace_str(
     packet,
     NP_MLS_PACKAGE_DATA,
@@ -594,10 +589,10 @@ np_mls_handle_userspace(np_mls_client* client,
   }
   // decrypt
   printf("Encrypted data: \n");
-  print_bin2hex(message);
+  np_mls_print_bin2hex(message);
   mls_bytes decrypted = mls_unprotect(group->local_session, message);
   printf("Decrypted data: \n");
-  print_bin2hex(decrypted);
+  np_mls_print_bin2hex(decrypted);
   printf("Received userspace message in group with subject: %s.\n",
          group->subject);
   return true;
@@ -686,7 +681,7 @@ np_mls_handle_group_operation(np_mls_client* client,
 }
 
 void
-print_bin2hex(mls_bytes bytes)
+np_mls_print_bin2hex(mls_bytes bytes)
 {
   size_t hex_size = bytes.size * 2 + 1;
   char hex_buffer[hex_size];
@@ -695,7 +690,7 @@ print_bin2hex(mls_bytes bytes)
 }
 
 bool
-remove_string_elem_from_array(arraylist* list, const char* s)
+np_mls_remove_string_elem_from_array(arraylist* list, const char* s)
 {
   if (list == NULL || s == NULL) {
     return false;
@@ -708,11 +703,21 @@ remove_string_elem_from_array(arraylist* list, const char* s)
   return false;
 }
 
-char* get_np_id_string(char *s) {
+char* np_mls_get_id_string(char *s) {
   unsigned char* subject_id = calloc(1, NP_FINGERPRINT_BYTES);
   np_get_id(subject_id, s, 0);
   char* subject_id_str = calloc(1, 65);
   np_id_str(subject_id_str, subject_id);
   free(subject_id);
   return subject_id_str;
+}
+
+mls_bytes np_mls_create_random_bytes(uint32_t length) {
+  mls_bytes output = {0};
+  output.size = length;
+  output.data = calloc(length, sizeof(*output.data));
+  for (int i = 0; i < length; i++) {
+    output.data[i] = rand() % (255 + 1);
+  }
+  return output;
 }

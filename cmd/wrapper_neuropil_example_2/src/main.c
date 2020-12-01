@@ -33,7 +33,7 @@ main(int argc, char* argv[])
   np_default_settings(&cfg);
   np_context* ac = np_new_context(&cfg);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 4567));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 3456));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
@@ -41,7 +41,7 @@ main(int argc, char* argv[])
 
   printf("Local Address: %s\n", mls_client->id);
 
-  char *subject_id_str = get_np_id_string("mysubject");
+  char *subject_id_str = np_mls_get_id_string("mysubject");
   //np_mls_create_group(mls_client, "mysubject", mls_client->id);
   assert(np_ok == np_mls_subscribe(mls_client, ac, "mysubject", receive));
   enum np_return status;

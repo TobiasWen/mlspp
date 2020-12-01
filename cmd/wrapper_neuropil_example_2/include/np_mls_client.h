@@ -25,7 +25,7 @@ typedef enum {
 } np_mls_packet_type;
 
 typedef enum  {
-  MLS_GRP_OP_ADD = 0,
+  MLS_GRP_OP_ADD = 0x000,
   MLS_GRP_OP_UPDATE,
   MLS_GRP_OP_REMOVE
 } np_mls_group_operation;
@@ -51,23 +51,36 @@ typedef struct {
   pthread_mutex_t *lock;
 } np_mls_client;
 
-// client creation/deletion
+// client creation / deletion
 np_mls_client* np_mls_create_client(np_context *ac);
 bool np_mls_delete_client(np_mls_client *client);
+
+// group creation
 bool np_mls_create_group(np_mls_client *client, const char* subject, const char *local_identifier);
 bool np_mls_delete_group(np_mls_group *group);
 
+// subscribe/unsubscribe
 bool np_mls_subscribe(np_mls_client *client, np_context *ac, const char* subject, np_receive_callback callback);
 bool np_mls_unsubscribe(np_context *ac, const char* subject);
+
+// authorize
 bool np_mls_authorize(np_context *ac, struct np_token *id);
+
+// update / remove
 void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);
 void np_mls_remove(np_mls_client *client, uint32_t remove_index, np_context *ac, const char *subject, const char* removed_client_id);
 void np_mls_remove_self(np_mls_client *client, np_context *ac, const char *subject);
 bool np_mls_remove_from_local_group(np_mls_client *client, np_mls_group *group, const char *subject_id_str);
+
+// send
 enum np_return np_mls_send(np_mls_client *client, np_context *ac, const char *subject, const unsigned char* message, size_t length);
+
+// get group (information)
 bool np_mls_get_group_index(np_mls_client *client, const char *subject, uint32_t *index_out);
 np_mls_group* np_mls_get_group_from_subject_id_str(np_mls_client *client, np_context *ac, const char *subject);
-mls_bytes extract_kp(struct np_token* id);
+
+// extract kp from token
+mls_bytes np_ml_extract_kp(struct np_token* id);
 
 // network packets
 mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);
@@ -80,8 +93,9 @@ bool np_mls_handle_welcome(np_mls_client *client, np_context *ac, mls_bytes welc
 bool np_mls_handle_userspace(np_mls_client *client, np_context *ac, mls_bytes message, const char *subject);
 bool np_mls_handle_group_operation(np_mls_client *client, np_context *ac, np_mls_group_operation operation, struct np_message *message, const char *subject);
 
-// util
-void print_bin2hex(mls_bytes bytes);
-bool remove_string_elem_from_array(arraylist *list, const char *s);
-char* get_np_id_string(char *s);
+// utility
+void np_mls_print_bin2hex(mls_bytes bytes);
+bool np_mls_remove_string_elem_from_array(arraylist *list, const char *s);
+char* np_mls_get_id_string(char *s);
+mls_bytes np_mls_create_random_bytes(uint32_t length);
 
