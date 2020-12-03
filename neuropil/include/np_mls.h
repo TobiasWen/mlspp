@@ -28,6 +28,7 @@ typedef enum {
   NP_MLS_PACKAGE_UPDATE = 0x003,
   NP_MLS_PACKAGE_REMOVE = 0x004,
   NP_MLS_PACKAGE_WELCOME = 0x005,
+  NP_MLS_PACKAGE_KEYPACKAGE = 0x006
 } np_mls_packet_type;
 
 typedef enum  {
@@ -82,7 +83,7 @@ bool np_mls_unsubscribe(np_context *ac, const char* subject);
 bool np_mls_receive(np_context* ac, struct np_message* message);
 
 // authorize
-bool np_mls_authorize(np_context *ac, struct np_token *id);
+bool np_mls_authorize(np_state_t *context, struct np_token *id);
 
 // update / remove
 void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);
@@ -107,7 +108,8 @@ mls_bytes np_ml_extract_kp(struct np_token* id);
 // network packets
 mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);
 mls_bytes np_mls_create_packet_group_operation(np_context *ac, np_mls_group_operation op, const char* relevant_client_id, mls_bytes data, mls_bytes commit);
-mls_bytes np_mls_create_packet_welcome(np_context* ac, mls_bytes data, mls_bytes group_id, char *target_id);
+mls_bytes np_mls_create_packet_welcome(np_context *ac, mls_bytes data, mls_bytes group_id, char *target_id);
+mls_bytes np_mls_create_packet_keypackage(np_state_t *context, mls_bytes data);
 
 // handle packets
 bool np_mls_handle_message(np_mls_client *client, np_context *ac, struct np_message* message);
