@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <core/np_comp_intent.h>
 #include <inttypes.h>
 #include <np_mls.h>
 #include <unistd.h>
@@ -162,6 +163,11 @@ np_context* np_new_context(struct np_settings * settings_in)
     else if (_np_attributes_init(context) == false)
     {
         log_msg(LOG_ERROR, "neuropil_init: _np_attributes_init failed");
+        status = np_startup;
+    }
+    else if (_np_mls_init(context) == false)
+    {
+        log_msg(LOG_ERROR, "neuropil_init: _np_mls_init failed");
         status = np_startup;
     }
     else {
@@ -762,6 +768,7 @@ void np_destroy(np_context* ac, bool gracefully)
     TSP_SET(context->status, np_stopped);
 
     // destroy modules
+    _np_mls_destroy(context);
     // _np_sysinfo_destroy_cache(context);
     _np_shutdown_destroy(context);    
     _np_bootstrap_destroy(context);

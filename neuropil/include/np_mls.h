@@ -60,7 +60,11 @@ typedef struct {
 // neuropil module functions
 bool _np_mls_init(np_state_t* context);
 void _np_mls_destroy(np_state_t* context);
-void _np_mls_register_protocol_subject(np_state_t* ac, const char* subject, np_msgproperty_t* property);
+void _np_mls_register_protocol_subject(np_state_t* context, const char* subject, np_msgproperty_t* property);
+NP_API_INTERN
+bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event);
+NP_API_INTERN
+bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t event);
 
 // client creation / deletion
 np_mls_client* np_mls_create_client(np_context *ac);
@@ -88,6 +92,10 @@ bool np_mls_remove_from_local_group(np_mls_client *client, np_mls_group *group, 
 
 // send
 enum np_return np_mls_send(np_mls_client *client, np_context *ac, const char *subject, const unsigned char* message, size_t length);
+
+// encrypt / decrypt
+bool np_mls_decrypt_payload(np_message_t *msg, Session *local_session);
+bool np_mls_encrypt_payload(np_message_t *msg, Session *local_session);
 
 // get group (information)
 bool np_mls_get_group_index(np_mls_client *client, const char *subject, uint32_t *index_out);

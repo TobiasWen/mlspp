@@ -7,14 +7,15 @@
 // this file conatins the state machine conditions, transitions and states that a node can
 // have. It is included form np_key.c, therefore there are no extra #include directives.
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <inttypes.h>
 #include <math.h>
+#include <np_mls.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
-#include "core/np_comp_msgproperty.h"
 #include "core/np_comp_intent.h"
+#include "core/np_comp_msgproperty.h"
 
 #include "np_axon.h"
 #include "np_aaatoken.h"
@@ -1139,9 +1140,18 @@ void __np_set_property(np_util_statemachine_t* statemachine, const np_util_event
 
     if (property->is_internal == false) {
         _np_msgproperty_create_token_ledger(statemachine, event);
-        if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type)) 
-        {   // first encrypt the payload for receiver 
+        if (property->encryption_algorithm == MLS_ENCRYPTION) {
+          if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper, np_evt_callback_t_sll_compare_type))
+          {   // first encrypt the payload for receiver
+            sll_append(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper);
+          }
+
+        } else {
+          if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
+          {   // first encrypt the payload for receiver
             sll_append(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper);
+          }
+
         }
 
         if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_default, np_evt_callback_t_sll_compare_type)) 

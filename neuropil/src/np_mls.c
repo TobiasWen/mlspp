@@ -1,14 +1,17 @@
 #include "np_mls.h"
 #include "neuropil_attributes.h"
+#include "np_legacy.h"
 #include "np_types.h"
 #include "np_util.h"
-#include "np_legacy.h"
 #include "sodium.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 #include "util/np_tree.h"
 #include <assert.h>
+#include <core/np_comp_intent.h>
+#include <np_keycache.h>
+#include <np_message.h>
 
 np_module_struct(mls) {
   np_state_t* context;
@@ -30,16 +33,88 @@ void _np_mls_destroy(np_state_t* context) {
   np_module_free(mls);
 }
 
-void _np_mls_register_protocol_subject(np_state_t* ac, const char* subject, np_msgproperty_t* property) {
+void _np_mls_register_protocol_subject(np_state_t* context, const char* subject, np_msgproperty_t* property) {
     char protocol_subject[255];
     sprintf(protocol_subject, "mls_%.250s", subject);
-    np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(ac, DEFAULT_MODE, protocol_subject);
+    np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
     mls_protocol_property->mls_connected = property;
     property->mls_connected = mls_protocol_property;
-    // TODO: get mls client from module
-    np_mls_create_group(mls_client, subject, mls_client->id);
-    np_add_receive_cb(ac, protocol_subject, np_mls_receive);
-    np_set_authorize_cb(ac, np_mls_authorize);
+    np_mls_client *mls_client = np_module(mls)->client;
+    if(property->mls_is_creator) {
+      np_mls_create_group(mls_client, subject, mls_client->id);
+    }
+    np_add_receive_cb(context, protocol_subject, np_mls_receive);
+    np_set_authorize_cb(context, np_mls_authorize);
+}
+
+bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event) {
+  log_trace_msg(LOG_TRACE, "start: bool _np_in_mls_callback_wrapper(...){");
+
+  NP_CAST(msg_event.user_data, np_message_t, msg_in);
+
+  log_debug(LOG_MESSAGE, "(msg: %s) start mls callback wrapper",msg_in->uuid);
+
+  bool ret = true;
+  bool free_msg_subject = false;
+
+  CHECK_STR_FIELD(msg_in->header, _NP_MSG_HEADER_SUBJECT, msg_subject_ele);
+  CHECK_STR_FIELD(msg_in->header, _NP_MSG_HEADER_FROM, msg_from);
+
+  char* msg_subject = np_treeval_to_str(msg_subject_ele, &free_msg_subject);
+  np_msgproperty_t* msg_prop = _np_msgproperty_get(context, INBOUND, msg_subject);
+
+  if (_np_msgproperty_threshold_breached(msg_prop))
+  {
+    ret = false;
+  }
+  else
+  {
+    log_msg(LOG_INFO, "decrypting mls message(%s/%s)", msg_prop->msg_subject, msg_in->uuid);
+    // get mls client
+    np_mls_client *mls_client = np_module(mls)->client;
+    if(mls_client == NULL) {
+      ret = false;
+    } else {
+      // get group
+      np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, msg_prop->msg_subject);
+      if(group == NULL) {
+        ret = false;
+      } else {
+        ret = np_mls_decrypt_payload(msg_in, group->local_session);
+      }
+    }
+  }
+  __np_cleanup__:
+  if (free_msg_subject) free(msg_subject);
+  np_module_free(mls);
+  return ret;
+}
+
+bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t event) {
+  log_trace_msg(LOG_TRACE, "start: void __np_out_mls_callback_wrapper(...){");
+
+  NP_CAST(event.user_data, np_message_t, message);
+  np_dhkey_t prop_dhkey = _np_msgproperty_dhkey(OUTBOUND, _np_message_get_subject(message) );
+  np_key_t*  prop_key   = _np_keycache_find(context, prop_dhkey);
+  NP_CAST(sll_first(prop_key->entities)->val, np_msgproperty_t, my_property);
+
+  bool ret = false;
+  log_msg(LOG_INFO, "encrypting mls message(%s/%s)", my_property->msg_subject, message->uuid);
+  // get mls client
+  np_mls_client *mls_client = np_module(mls)->client;
+  if(mls_client == NULL) {
+    ret = false;
+  } else {
+    // get group
+    np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, my_property->msg_subject);
+    if(group == NULL) {
+      ret = false;
+    } else {
+      // encrypt the message
+      ret = np_mls_encrypt_payload(message, group->local_session);
+    }
+  }
+  return ret;
 }
 
 // client creation / deletion
@@ -350,6 +425,10 @@ np_mls_send(np_mls_client* client,
   // TODO: create check if client is in grp etc.
   return np_send(ac, subject, message, length);
 }
+
+// encrypt / decrypt
+bool np_mls_decrypt_payload(np_message_t *msg, Session *local_session);
+bool np_mls_encrypt_payload(np_message_t *msg, Session *local_session);
 
 bool
 np_mls_get_group_index(np_mls_client* client,

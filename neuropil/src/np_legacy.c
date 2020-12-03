@@ -11,10 +11,11 @@
 #include <string.h>
 
 #include <inttypes.h>
+#include <np_mls.h>
 #include <sys/types.h>
 
-#include "sodium.h"
 #include "event/ev.h"
+#include "sodium.h"
 
 #include "neuropil.h"
 #include "np_legacy.h"
@@ -288,9 +289,16 @@ void np_add_receive_listener(np_context*ac, np_usercallbackfunction_t msg_handle
 
     if (msg_prop != NULL && msg_prop->is_internal == false) 
     {
-        if (false == sll_contains(np_evt_callback_t, msg_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type)) 
-        {   // decrypt or cache the message
+        if(msg_prop->encryption_algorithm == MLS_ENCRYPTION) {
+          if (false == sll_contains(np_evt_callback_t, msg_prop->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type))
+          {   // decrypt or cache the message
+            sll_append(np_evt_callback_t, msg_prop->clb_inbound, _np_in_mls_callback_wrapper);
+          }
+        } else {
+          if (false == sll_contains(np_evt_callback_t, msg_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+          {   // decrypt or cache the message
             sll_append(np_evt_callback_t, msg_prop->clb_inbound, _np_in_callback_wrapper);
+          }
         }
         if (false == sll_contains(np_evt_callback_t, msg_prop->clb_inbound, _check_and_send_destination_ack, np_evt_callback_t_sll_compare_type)) 
         {   // potentially send an ack for a message
