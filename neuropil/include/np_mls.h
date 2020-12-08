@@ -80,7 +80,7 @@ bool np_mls_subscribe(np_mls_client *client, np_context *ac, const char* subject
 bool np_mls_unsubscribe(np_context *ac, const char* subject);
 
 // receive
-bool np_mls_receive(np_context* ac, struct np_message* message);
+bool np_mls_receive(np_state_t* context, struct np_message* message);
 
 // authorize
 bool np_mls_authorize(np_state_t *context, struct np_token *id);

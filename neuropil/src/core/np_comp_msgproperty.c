@@ -1594,6 +1594,10 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding sending intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_sender(my_property_key, intent_token);
+        if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+          np_mls_authorize(context, intent_token);
+        }
+
         np_unref_obj(np_aaatoken_t, old_token, "send_tokens");
 
         // check if some messages are left in the cache
@@ -1606,6 +1610,9 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding receiver intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_receiver(my_property_key, intent_token);
+        if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+          np_mls_authorize(context, intent_token);
+        }
         np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");
 
         // check if some messages are left in the cache

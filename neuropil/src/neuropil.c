@@ -165,11 +165,6 @@ np_context* np_new_context(struct np_settings * settings_in)
         log_msg(LOG_ERROR, "neuropil_init: _np_attributes_init failed");
         status = np_startup;
     }
-    else if (_np_mls_init(context) == false)
-    {
-        log_msg(LOG_ERROR, "neuropil_init: _np_mls_init failed");
-        status = np_startup;
-    }
     else {
         np_thread_t * new_thread =
             __np_createThread(context, 0, NULL, false, np_thread_type_main);
@@ -294,6 +289,11 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
             else if (_np_statistics_init(context) == false) 
             {
                 log_msg(LOG_ERROR, "neuropil_init: could not init statistics");
+                ret = np_startup;
+            }
+            else if (_np_mls_init(context) == false)
+            {
+                log_msg(LOG_ERROR, "neuropil_init: _np_mls_init failed");
                 ret = np_startup;
             }
             else 
@@ -671,11 +671,14 @@ enum np_return np_set_mx_properties(np_context* ac, const char* subject, struct 
     safe_user_property.reply_subject[254] = 0;
 
     np_msgproperty_t* property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, subject);
+    bool mls_used = false;
     if(property->encryption_algorithm != MLS_ENCRYPTION && user_property.encryption_algorithm == MLS_ENCRYPTION) {
-      _np_mls_register_protocol_subject(context, subject, property);
+      mls_used = true;
     }
     np_msgproperty_from_user(context, property, &safe_user_property);
-
+    if(mls_used) {
+      _np_mls_register_protocol_subject(context, subject, property);
+    }
     return ret;
 }
 

@@ -704,11 +704,10 @@ np_mls_remove_string_elem_from_array(arraylist* list, const char* s)
 }
 
 char* np_mls_get_id_string(char *s) {
-  unsigned char* subject_id = calloc(1, NP_FINGERPRINT_BYTES);
-  np_get_id(subject_id, s, 0);
+  np_id subject_id;
+  np_get_id(&subject_id, s, 0);
   char* subject_id_str = calloc(1, 65);
   np_id_str(subject_id_str, subject_id);
-  free(subject_id);
   return subject_id_str;
 }
 
