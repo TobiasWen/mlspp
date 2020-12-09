@@ -1,5 +1,6 @@
 add_subdirectory(api_example)
 add_subdirectory(test_gen)
 add_subdirectory(wrapper_example)
-add_subdirectory(wrapper_neuropil_example)
-add_subdirectory(wrapper_neuropil_example_2)
+#add_subdirectory(wrapper_neuropil_example)
+#add_subdirectory(wrapper_neuropil_example_2)
+add_subdirectory(wrapper_neuropil_integration_example)
