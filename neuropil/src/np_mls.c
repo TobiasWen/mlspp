@@ -10,6 +10,8 @@
 #include "util/np_tree.h"
 #include <assert.h>
 #include <core/np_comp_intent.h>
+#include <np_axon.h>
+#include <np_dendrit.h>
 #include <np_keycache.h>
 #include <np_message.h>
 #include <np_serialization.h>
@@ -40,6 +42,13 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
     np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
     mls_protocol_property->mls_connected = property;
     property->mls_connected = mls_protocol_property;
+
+    if (true == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
+    {   // first encrypt the payload for receiver
+      sll_remove(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type);
+      sll_prepend(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper);
+    }
+
     np_mls_client *mls_client = np_module(mls)->client;
     if(property->mls_is_creator) {
       np_mls_create_group(mls_client, protocol_subject, mls_client->id);
@@ -77,13 +86,16 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
     np_mls_client *mls_client = np_module(mls)->client;
     if(mls_client == NULL) {
       ret = false;
+      printf("np_in_cb_wrapper mls client NULL\n");
     } else {
       // get group
-      char *subject_id_str = np_mls_get_id_string(msg_prop->msg_subject);
+      char *subject_id_str = np_mls_get_id_string(msg_prop->mls_connected->msg_subject);
       np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, subject_id_str);
       if(group == NULL) {
+        printf("np_in_cb_wrapper group NULL\n");
         ret = false;
       } else {
+        printf("np_in_cb_wrapper decrypting\n");
         ret = np_mls_decrypt_payload(msg_in, group->local_session);
       }
       free(subject_id_str);
@@ -96,6 +108,7 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
 }
 
 bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t event) {
+  printf("MLS Callback output wrapper fired!\n");
   log_trace_msg(LOG_TRACE, "start: void __np_out_mls_callback_wrapper(...){");
 
   NP_CAST(event.user_data, np_message_t, message);
@@ -109,15 +122,23 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
   np_mls_client *mls_client = np_module(mls)->client;
   if(mls_client == NULL) {
     ret = false;
+    printf("MLS Callback output wrapper client NULL!\n");
   } else {
     // get group
-    char *subject_id_str = np_mls_get_id_string(my_property->msg_subject);
-    np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, my_property->msg_subject);
+    char *subject_id_str = np_mls_get_id_string(my_property->mls_connected->msg_subject);
+    np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, subject_id_str);
     if(group == NULL) {
       ret = false;
+      printf("MLS Callback output wrapper group NULL!\n");
     } else {
       // encrypt the message
       ret = np_mls_encrypt_payload(message, group->local_session);
+      np_tree_elem_t* enc_msg_part = np_tree_find_str(message->body, NP_ENCRYPTED);
+      if (NULL == enc_msg_part)
+      {
+        printf("couldn't find encrypted msg part in encryption method\n");
+        return (false);
+      }
     }
     free(subject_id_str);
   }
@@ -284,12 +305,12 @@ bool np_mls_receive(np_state_t* context, struct np_message* message) {
   return ret;
 }
 
-bool np_mls_authorize(np_state_t *context, struct np_token *id) {
-  printf("Authorizing mls on subject %s  issuer:%s\n", id->subject, id->issuer);
+bool np_mls_authorize(np_state_t *context, char *subject) {
+  //printf("Authorizing mls on subject %s\n", subject);
 
   // check if already in group for that subject
   np_mls_client *client = np_module(mls)->client;
-  char *subject_id_str = np_mls_get_id_string(id->subject);
+  char *subject_id_str = np_mls_get_id_string(subject);
   np_mls_group *group = np_mls_get_group_from_subject_id_str(client, context, subject_id_str);
   if(group == NULL) {
     // check if there already exists a pending join for this subject
@@ -299,16 +320,16 @@ bool np_mls_authorize(np_state_t *context, struct np_token *id) {
     // create new key package
     PendingJoin* join = mls_start_join(client->mls_client);
     // add subject to reverse lookup hashtable
-    hashtable_set(client->ids_to_subjects, subject_id_str, id->subject);
+    hashtable_set(client->ids_to_subjects, subject_id_str, subject);
     arraylist_add(client->ids, subject_id_str);
     hashtable_set(client->pending_joins, subject_id_str, join);
     arraylist_add(client->pending_subjects, subject_id_str);
     mls_bytes kp = mls_pending_join_get_key_package(join);
     mls_bytes key_package = np_mls_create_packet_keypackage(context, kp);
     // send key package
-    np_send(context, id->subject, key_package.data, key_package.size);
+    np_send(context, subject, key_package.data, key_package.size);
     mls_delete_bytes(kp);
-    printf("MLS deleted Keypackage!!\n");
+    printf("MLS deleted Keypackage!\n");
   }
   return true;
 }
@@ -444,7 +465,7 @@ bool np_mls_encrypt_payload(np_message_t *msg, Session *local_session) {
 
   mls_bytes plaintext = {.data = msg_part_buf_ptr, .size = msg_part_len};
   mls_bytes encrypted = mls_protect(local_session, plaintext);
-  _np_tree_replace_all_with_str(msg->body, NP_ENCRYPTED,
+  np_tree_insert_str(msg->body, NP_ENCRYPTED,
                                 np_treeval_new_bin(encrypted.data, encrypted.size));
   mls_delete_bytes(encrypted);
   return true;

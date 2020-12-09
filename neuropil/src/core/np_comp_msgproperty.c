@@ -1140,20 +1140,11 @@ void __np_set_property(np_util_statemachine_t* statemachine, const np_util_event
 
     if (property->is_internal == false) {
         _np_msgproperty_create_token_ledger(statemachine, event);
-        if (property->encryption_algorithm == MLS_ENCRYPTION) {
-          if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper, np_evt_callback_t_sll_compare_type))
-          {   // first encrypt the payload for receiver
-            sll_append(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper);
-          }
 
-        } else {
-          if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
-          {   // first encrypt the payload for receiver
-            sll_append(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper);
-          }
-
+        if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
+        {   // first encrypt the payload for receiver
+          sll_append(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper);
         }
-
         if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_default, np_evt_callback_t_sll_compare_type)) 
         {   // then route and send message
             sll_append(np_evt_callback_t, property->clb_outbound, _np_out_default);
@@ -1222,7 +1213,8 @@ void __np_msgproperty_send_available_messages(np_util_statemachine_t* statemachi
 
     if (_np_dhkey_equal(&property_key->dhkey, &recv_dhkey) &&
        ( (now - property->last_intent_rx_update) > property->token_min_ttl) &&
-       sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+       (sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+        sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {   // send our token, search for sender of messages
         np_message_t* msg_out = NULL;
         np_new_obj(np_message_t, msg_out, ref_message_in_send_system);
@@ -1301,7 +1293,8 @@ void __np_msgproperty_send_pheromone_messages(np_util_statemachine_t* statemachi
     }
 
     if (is_recv &&
-        sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+      (sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+       sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {
         np_tree_insert_int(bloom_data,  (target_dhkey.t[0] % 257)+1, np_treeval_new_bin((void*) buffer, buffer_size));
         log_debug_msg(LOG_DEBUG, "adding %25s bloom data at %i", property->msg_subject, (target_dhkey.t[0] % 257)+1);
@@ -1590,12 +1583,13 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
 
     // choose correct target ledger
     if (_np_dhkey_equal(&target_inbound_dhkey, &my_property_key->dhkey) &&
-        sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+      (sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+       sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {
         log_msg(LOG_INFO, "adding sending intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_sender(my_property_key, intent_token);
         if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
-          np_mls_authorize(context, intent_token);
+          np_mls_authorize(context, real_prop->mls_connected->msg_subject);
         }
 
         np_unref_obj(np_aaatoken_t, old_token, "send_tokens");
@@ -1611,7 +1605,7 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
         log_msg(LOG_INFO, "adding receiver intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_receiver(my_property_key, intent_token);
         if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
-          np_mls_authorize(context, intent_token);
+          np_mls_authorize(context, real_prop->mls_connected->msg_subject);
         }
         np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");
 

@@ -70,6 +70,7 @@
 
 bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event) 
 {
+    printf("_np_out_callback_wrapper fired!\n");
     log_trace_msg(LOG_TRACE, "start: void __np_out_callback_wrapper(...){");
 
     NP_CAST(event.user_data, np_message_t, message);

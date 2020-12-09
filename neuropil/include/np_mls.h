@@ -83,7 +83,7 @@ bool np_mls_unsubscribe(np_context *ac, const char* subject);
 bool np_mls_receive(np_state_t* context, struct np_message* message);
 
 // authorize
-bool np_mls_authorize(np_state_t *context, struct np_token *id);
+bool np_mls_authorize(np_state_t *context, char *subject);
 
 // update / remove
 void np_mls_update(np_mls_client *client, np_context *ac, const char *subject);

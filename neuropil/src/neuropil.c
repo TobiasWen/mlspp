@@ -671,10 +671,8 @@ enum np_return np_set_mx_properties(np_context* ac, const char* subject, struct 
     safe_user_property.reply_subject[254] = 0;
 
     np_msgproperty_t* property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, subject);
-    bool mls_used = false;
-    if(property->encryption_algorithm != MLS_ENCRYPTION && user_property.encryption_algorithm == MLS_ENCRYPTION) {
-      mls_used = true;
-    }
+    bool mls_used = property->encryption_algorithm != MLS_ENCRYPTION && user_property.encryption_algorithm == MLS_ENCRYPTION;
+
     np_msgproperty_from_user(context, property, &safe_user_property);
     if(mls_used) {
       _np_mls_register_protocol_subject(context, subject, property);
