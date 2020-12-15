@@ -26,7 +26,7 @@ main(int argc, char* argv[])
   np_default_settings(&cfg);
   np_context* ac = np_new_context(&cfg);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 4567));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 5678));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
@@ -60,7 +60,7 @@ main(int argc, char* argv[])
 bool
 authorize(np_context* ac, struct np_token* id)
 {
-  printf("Authorizing on subject %s issuer:%s\n", id->subject, id->issuer);
+  //printf("Authorizing on subject %s issuer:%s\n", id->subject, id->issuer);
   return true;
 }
 
