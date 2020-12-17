@@ -56,8 +56,8 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_treeval.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_scache.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util/np_statemachine.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/arraylist.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/util/hashtable.c
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/util/arraylist.c
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/util/hashtable.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/prometheus/prometheus.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/sysinfo/np_sysinfo.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/http/np_http.c
@@ -70,7 +70,7 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-target_link_libraries(${CURRENT_LIB_NAME} mlspp-c sodium pthread m)
+target_link_libraries(${CURRENT_LIB_NAME} ${LIBBENCHMARK_NAME} mlspp-c sodium pthread m)
 
-target_include_directories(${CURRENT_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/framework" "${CMAKE_SOURCE_DIR}/wrapper/include")
+target_include_directories(${CURRENT_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/framework" "${CMAKE_SOURCE_DIR}/wrapper/include" "${CMAKE_SOURCE_DIR}/libbenchmark/include")
 target_include_directories(${CURRENT_LIB_NAME} PUBLIC )

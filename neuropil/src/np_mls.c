@@ -1,4 +1,5 @@
 #include "np_mls.h"
+#include "libbenchmark.h"
 #include "neuropil_attributes.h"
 #include "np_legacy.h"
 #include "np_types.h"
@@ -128,7 +129,11 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
       printf("MLS Callback output wrapper group NULL!\n");
     } else {
       // encrypt the message
+      np_mls_benchmark *benchmark = np_get_userdata(context);
+      np_mls_clock *my_clock = np_mls_clock_start();
       ret = np_mls_encrypt_payload(message, group->local_session);
+      np_mls_clock_stop(my_clock);
+      printf("MLS Encryption took %f.9s and has a size of %d\n", my_clock->cpu_time_used, message->body->byte_size);
       np_tree_elem_t* enc_msg_part = np_tree_find_str(message->body, NP_ENCRYPTED);
       if (NULL == enc_msg_part)
       {

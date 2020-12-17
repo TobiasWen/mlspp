@@ -5,8 +5,8 @@
 #include "neuropil.h"
 #include "np_types.h"
 #include "pthread.h"
-#include "util/arraylist.h"
-#include "util/hashtable.h"
+#include "arraylist.h"
+#include "hashtable.h"
 
 #ifdef __cplusplus
 extern "C" {
