@@ -53,8 +53,6 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
     if(property->mls_is_creator) {
       np_mls_create_group(mls_client, protocol_subject, mls_client->id);
     }
-    //struct np_mx_properties props = np_get_mx_properties(context, protocol_subject);
-    //np_set_mx_properties(context, protocol_subject, props);
     assert(np_ok == np_add_receive_cb(context, protocol_subject, np_mls_receive));
     printf("Created mls protocol subject %s!\n", protocol_subject);
 }
@@ -103,12 +101,10 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
   }
   __np_cleanup__:
   if (free_msg_subject) free(msg_subject);
-  printf("MLS Callback input wrapper fired!\n");
   return ret;
 }
 
 bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t event) {
-  printf("MLS Callback output wrapper fired!\n");
   log_trace_msg(LOG_TRACE, "start: void __np_out_mls_callback_wrapper(...){");
 
   NP_CAST(event.user_data, np_message_t, message);
@@ -142,7 +138,6 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
     }
     free(subject_id_str);
   }
-  printf("MLS Callback output wrapper fired!\n");
   return ret;
 }
 
@@ -299,7 +294,6 @@ np_mls_subscribe(np_mls_client* client,
 }
 
 bool np_mls_receive(np_state_t* context, struct np_message* message) {
-  printf("Received: %.*s\n", (int)message->data_length, message->data);
   np_mls_client *mls_client = np_module(mls)->client;
   bool ret = np_mls_handle_message(mls_client, context, message);
   return ret;
@@ -329,7 +323,7 @@ bool np_mls_authorize(np_state_t *context, char *subject) {
     // send key package
     np_send(context, subject, key_package.data, key_package.size);
     mls_delete_bytes(kp);
-    printf("MLS deleted Keypackage!\n");
+    printf("Sent Keypackage!\n");
   }
   return true;
 }
@@ -633,22 +627,6 @@ np_mls_handle_message(np_mls_client* client,
   }
   np_mls_packet_type type = source_type->val.value.i;
   switch (type) {
-    case NP_MLS_PACKAGE_USERSPACE: {
-      char* subject_id_str = calloc(1, 65);
-      np_id_str(subject_id_str, message->subject);
-      np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
-      if (source_data == NULL) {
-        printf("Couldn't find userspace data\n");
-        return true;
-      }
-      mls_bytes userdata = { 0 };
-      size_t userdata_data_size = source_data->val.size;
-      userdata.data = calloc(1, userdata_data_size);
-      userdata.size = userdata_data_size;
-      memcpy(userdata.data, source_data->val.value.bin, userdata_data_size);
-      np_mls_handle_userspace(client, ac, userdata, subject_id_str);
-      break;
-    }
     case NP_MLS_PACKAGE_ADD: {
       np_mls_group_operation op = MLS_GRP_OP_ADD;
       char* subject_id_str = calloc(1, 65);
@@ -699,7 +677,7 @@ np_mls_handle_message(np_mls_client* client,
       // get group id
       np_tree_elem_t* source_id = np_tree_find_str(tree, NP_MLS_PACKAGE_GROUP_ID);
       if (source_id == NULL) {
-        printf("Couldn't find group id\n");
+        printf("Couldn't find group id from welcome packet\n");
         return true;
       }
       mls_bytes group_id = { 0 };
@@ -718,7 +696,7 @@ np_mls_handle_message(np_mls_client* client,
       // Extract kp from token and send welcome message
       np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
       if (source_data == NULL) {
-        printf("Couldn't find welcome data\n");
+        printf("Couldn't find keypackage data in received keypackage\n");
         return true;
       }
       mls_bytes kp = { 0 };

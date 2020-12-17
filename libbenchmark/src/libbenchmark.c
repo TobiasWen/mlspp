@@ -12,7 +12,7 @@
 np_mls_benchmark* np_mls_create_benchmark(char *name, char *id, int num_clients_per_node, np_mls_benchmark_topology topology, bool has_sender) {
   if(name != NULL && id != NULL) {
     np_mls_benchmark *benchmark = calloc(1, sizeof(*benchmark));
-    benchmark->id = calloc(1, strlen(name) + sizeof(*benchmark->id));
+    benchmark->id = calloc(1, strlen(id) + sizeof(*benchmark->id));
     strcpy(benchmark->id, id);
     benchmark->name = calloc(1, strlen(name) + sizeof(*benchmark->name));
     strcpy(benchmark->name, name);
@@ -96,20 +96,106 @@ bool np_mls_add_result_to_benchmark(np_mls_benchmark *benchmark, np_mls_benchmar
   return false;
 }
 
-bool np_mls_add_value_to_result(char *key, int value, char *unit, np_mls_benchmark_result *result) {
-  if(key != NULL && unit != NULL && result != NULL) {
+bool np_mls_add_int_value_to_result(char *key, int value, char *unit, np_mls_benchmark_result *result) {
+  return np_mls_add_value_to_result(key, &value, sizeof(value), unit, result);
+}
+
+bool np_mls_add_double_value_to_result(char *key, double value, char *unit, np_mls_benchmark_result *result) {
+  return np_mls_add_value_to_result(key, &value, sizeof(value), unit, result);
+}
+
+bool np_mls_add_list_to_result(char *key, arraylist *list, char *unit, np_mls_benchmark_result *result) {
+  return np_mls_add_value_to_result(key, list, sizeof(*list), unit, result);
+}
+
+bool np_mls_add_value_to_result(char *key, void *value, size_t value_size, char *unit, np_mls_benchmark_result *result) {
+  if(key != NULL && unit != NULL && result != NULL && value != NULL) {
     pthread_mutex_lock(result->lock);
     arraylist_add(result->keys, key);
     char *ht_key = calloc(1, strlen(key) + sizeof(*ht_key));
     strcpy(ht_key, key);
-    int *ht_value = calloc(1, sizeof(*ht_value));
-    memcpy(ht_value, value, sizeof(*ht_value));
+    void *ht_value = calloc(1, value_size);
+    memcpy(ht_value, value, value_size);
     hashtable_set(result->values, ht_key, ht_value);
     char *ht_unit = calloc(1, strlen(unit) + sizeof(*unit));
     strcpy(ht_unit, unit);
     hashtable_set(result->units, ht_key, ht_unit);
     pthread_mutex_unlock(result->lock);
     return true;
+  }
+  return false;
+}
+
+bool np_mls_add_int_to_list_result(char *key, int value, np_mls_benchmark_result *result) {
+  return np_mls_add_value_to_list_result(key, &value, sizeof(value), result);
+}
+
+bool np_mls_add_double_to_list_result(char *key, double value, np_mls_benchmark_result *result) {
+  return np_mls_add_value_to_list_result(key, &value, sizeof(value), result);
+}
+
+bool np_mls_add_value_to_list_result(char *key, void *value, size_t value_size, np_mls_benchmark_result *result) {
+  if(key != NULL && result != NULL && value != NULL) {
+    pthread_mutex_lock(result->lock);
+    if(result->values != NULL) {
+      arraylist *values = hashtable_get(result->values, key);
+      if(values != NULL) {
+        void *ht_value = calloc(1, value_size);
+        memcpy(ht_value, value, value_size);
+        arraylist_add(values, ht_value);
+        pthread_mutex_unlock(result->lock);
+        return true;
+      }
+    }
+    pthread_mutex_unlock(result->lock);
+  }
+  return false;
+}
+// retrieval of results
+char* np_mls_get_unit_from_result(char *key, np_mls_benchmark_result *result) {
+  if(key != NULL && result != NULL) {
+    char* unit = hashtable_get(result->units, key);
+    if(unit != NULL) {
+      return unit;
+    }
+  }
+  return NULL;
+}
+
+int* np_mls_get_int_value_from_result(char *key, np_mls_benchmark_result *result) {
+  return (int*) np_mls_get_value_from_result(key, result);
+}
+
+double* np_mls_get_double_value_from_result(char *key, np_mls_benchmark_result *result) {
+  return (double*) np_mls_get_value_from_result(key, result);
+}
+arraylist* np_mls_get_list_from_result(char *key, np_mls_benchmark_result *result) {
+  return (arraylist*) np_mls_get_value_from_result(key, result);
+}
+
+void* np_mls_get_value_from_result(char *key, np_mls_benchmark_result *result) {
+  if(key != NULL && result != NULL) {
+    void *value = hashtable_get(result->values, key);
+    if(value != NULL) {
+      return value;
+    }
+  }
+  return NULL;
+}
+
+// free
+bool np_mls_free_list_items_from_result(char *key, np_mls_benchmark_result *result) {
+  if(key != NULL && result != NULL) {
+    arraylist *list = hashtable_get(result->values, key);
+    if(list != NULL) {
+      for(int i = 0; i < arraylist_size(list); i++) {
+        void *item = arraylist_get(list, i);
+        if(item != NULL) {
+          free(item);
+        }
+      }
+      return true;
+    }
   }
   return false;
 }
