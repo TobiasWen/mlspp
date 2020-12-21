@@ -1,7 +1,3 @@
-//
-// Created by tobias on 15.12.20.
-//
-
 #include "libbenchmark.h"
 #include <pthread.h>
 #include <stdbool.h>
@@ -9,7 +5,14 @@
 #include <string.h>
 
 // init
-np_mls_benchmark* np_mls_create_benchmark(char *name, char *id, int num_clients_per_node, np_mls_benchmark_topology topology, bool has_sender) {
+np_mls_benchmark* np_mls_create_benchmark(char *name,
+                                          char *id,
+                                          int num_clients_per_node,
+                                          int packet_byte_size,
+                                          int message_send_num,
+                                          np_mls_benchmark_topology topology,
+                                          bool has_sender,
+                                          char *result_url_endpoint) {
   if(name != NULL && id != NULL) {
     np_mls_benchmark *benchmark = calloc(1, sizeof(*benchmark));
     benchmark->id = calloc(1, strlen(id) + sizeof(*benchmark->id));
@@ -18,13 +21,25 @@ np_mls_benchmark* np_mls_create_benchmark(char *name, char *id, int num_clients_
     strcpy(benchmark->name, name);
     benchmark->results = arraylist_create();
     benchmark->num_clients_per_node = num_clients_per_node;
+    benchmark->packet_byte_size = packet_byte_size;
+    benchmark->message_send_num = message_send_num;
     benchmark->topology = topology;
     benchmark->lock = calloc(1, sizeof(*benchmark->lock));
     pthread_mutex_init(benchmark->lock, NULL);
     benchmark->has_sender = has_sender;
+    benchmark->result_url_endpoint = result_url_endpoint;
     return benchmark;
   }
   return NULL;
+}
+
+bool np_mls_benchmark_start(np_mls_benchmark *benchmark,
+                            np_mls_benchmark_run benchmark_run_cb) {
+  if(benchmark != NULL) {
+    benchmark_run_cb(benchmark);
+    return true;
+  }
+  return false;
 }
 
 np_mls_benchmark_result* np_mls_create_benchmark_results(char *client_id, bool is_sender) {

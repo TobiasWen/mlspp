@@ -14,10 +14,14 @@ typedef struct {
   char *name;
   char *id;
   int num_clients_per_node;
+  int packet_byte_size;
+  int message_send_num;
   np_mls_benchmark_topology topology;
   bool has_sender;
   arraylist *results;
   pthread_mutex_t *lock;
+  char *result_url_endpoint;
+
 } np_mls_benchmark;
 
 typedef struct {
@@ -38,8 +42,21 @@ typedef struct {
   double wall_time_used;
 } np_mls_clock;
 
+// function typedefs
+typedef void (*np_mls_benchmark_run)(np_mls_benchmark *benchmark);
+
 // init
-np_mls_benchmark* np_mls_create_benchmark(char *name, char *id, int num_clients_per_node, np_mls_benchmark_topology topology, bool has_sender);
+np_mls_benchmark* np_mls_create_benchmark(char *name,
+                                          char *id,
+                                          int num_clients_per_node,
+                                          int packet_byte_size,
+                                          int message_send_num,
+                                          np_mls_benchmark_topology topology,
+                                          bool has_sender,
+                                          char *result_url_endpoint);
+
+bool np_mls_benchmark_start(np_mls_benchmark *benchmark,
+                            np_mls_benchmark_run benchmark_run_cb);
 np_mls_benchmark_result* np_mls_create_benchmark_results(char *client_id, bool is_sender);
 // destroy
 bool np_mls_destroy_benchmark(np_mls_benchmark *benchmark);
@@ -65,13 +82,15 @@ bool np_mls_free_list_items_from_result(char *key, np_mls_benchmark_result *resu
 np_mls_clock* np_mls_clock_start();
 void np_mls_clock_stop(np_mls_clock *my_clock);
 bool np_mls_clock_destroy(np_mls_clock *clock);
+// utility
+
 /**
    TODO: List for benchmarking
    1.(✓) Datastructure for the benchmark data itself
    2.(✓) Thread Safe datastructure for saving benchmark data associated with a string as key/value pair
    3.(✓) Way to save those benchmarks in the benchmark datastructure
-   4.( ) Way to conveniently measure cpu time and wall clock time in a local way
-        - ( ) start specific measurement and create reference
-        - ( ) stop specific measurement with reference created beforehand and return measured time
+   4.(✓) Way to conveniently measure cpu time and wall clock time in a local way
+        - (✓) start specific measurement and create reference
+        - (✓) stop specific measurement with reference created beforehand and return measured time
    5.( ) Think about getting the values in a convenient way
  */
