@@ -5,10 +5,28 @@
 #include "arraylist.h"
 #include "hashtable.h"
 
+static const char *NP_MLS_ENCRYPTION_TIME_WALL = "NP_MLS_ENCRYPTION_TIME_WALL";
+static const char *NP_MLS_ENCRYPTION_TIME_CPU = "NP_MLS_ENCRYPTION_TIME_CPU";
+static const char *NP_MLS_DECRYPTION_TIME_WALL = "NP_MLS_DECRYPTION_TIME_WALL";
+static const char *NP_MLS_DECRYPTION_TIME_CPU = "NP_MLS_DECRYPTION_TIME_CPU";
+static const char *NP_MLS_MESSAGE_OUT_BYTE_SIZE = "NP_MLS_MESSAGE_OUT_BYTE_SIZE";
+static const char *NP_MLS_MESSAGE_IN_BYTE_SIZE = "NP_MLS_MESSAGE_IN_BYTE_SIZE";
+
 typedef enum {
   NP_MLS_BENCHMARK_STAR_TOPOLOGY = 0x000,
   NP_MLS_BENCHMARK_MESH_TOPOLOGY = 0x001
 } np_mls_benchmark_topology;
+
+typedef enum {
+  NP_MLS_NO_ENCRYPTION = 0x000,
+  NP_MLS_JSON_ENCRYPTION = 0x001,
+  NP_MLS_ENCRYPTION_X25519_AES128GCM_SHA256_Ed25519 = 0x002,
+  NP_MLS_ENCRYPTION_P256_AES128GCM_SHA256_P256 = 0x002,
+  NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519 = 0x003,
+  NP_MLS_ENCRYPTION_X448_AES256GCM_SHA512_Ed448 = 0x004,
+  NP_MLS_ENCRYPTION_P521_AES256GCM_SHA512_P521= 0x005,
+  NP_MLS_ENCRYPTION_X448_CHACHA20POLY1305_SHA512_Ed448 = 0x006,
+} np_mls_benchmark_algorithm;
 
 typedef struct {
   char *name;
@@ -17,11 +35,12 @@ typedef struct {
   int packet_byte_size;
   int message_send_num;
   np_mls_benchmark_topology topology;
+  np_mls_benchmark_algorithm benchmark_algorithm;
   bool has_sender;
   arraylist *results;
   pthread_mutex_t *lock;
   char *result_url_endpoint;
-
+  bool finished;
 } np_mls_benchmark;
 
 typedef struct {
@@ -42,6 +61,11 @@ typedef struct {
   double wall_time_used;
 } np_mls_clock;
 
+typedef struct {
+  np_mls_benchmark *benchmark;
+  np_mls_benchmark_result *result;
+} benchmark_userdata;
+
 // function typedefs
 typedef void (*np_mls_benchmark_run)(np_mls_benchmark *benchmark);
 
@@ -52,6 +76,7 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
                                           int packet_byte_size,
                                           int message_send_num,
                                           np_mls_benchmark_topology topology,
+                                          np_mls_benchmark_algorithm benchmark_algortihm,
                                           bool has_sender,
                                           char *result_url_endpoint);
 
@@ -83,7 +108,8 @@ np_mls_clock* np_mls_clock_start();
 void np_mls_clock_stop(np_mls_clock *my_clock);
 bool np_mls_clock_destroy(np_mls_clock *clock);
 // utility
-
+char* generateUUID();
+char* str_concat(const char *s1, const char *s2);
 /**
    TODO: List for benchmarking
    1.(✓) Datastructure for the benchmark data itself

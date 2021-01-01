@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <uuid/uuid.h>
 
 // init
 np_mls_benchmark* np_mls_create_benchmark(char *name,
@@ -11,6 +12,7 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
                                           int packet_byte_size,
                                           int message_send_num,
                                           np_mls_benchmark_topology topology,
+                                          np_mls_benchmark_algorithm benchmark_algorithm,
                                           bool has_sender,
                                           char *result_url_endpoint) {
   if(name != NULL && id != NULL) {
@@ -24,10 +26,12 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
     benchmark->packet_byte_size = packet_byte_size;
     benchmark->message_send_num = message_send_num;
     benchmark->topology = topology;
+    benchmark->benchmark_algorithm = benchmark_algorithm;
     benchmark->lock = calloc(1, sizeof(*benchmark->lock));
     pthread_mutex_init(benchmark->lock, NULL);
     benchmark->has_sender = has_sender;
     benchmark->result_url_endpoint = result_url_endpoint;
+    benchmark->finished = false;
     return benchmark;
   }
   return NULL;
@@ -236,4 +240,21 @@ bool np_mls_clock_destroy(np_mls_clock *clock) {
     return true;
   }
   return false;
+}
+
+// utility
+char* generateUUID() {
+  uuid_t binuuid;
+  uuid_generate(binuuid);
+  char *uuid = malloc(37);
+  uuid_unparse(binuuid, uuid);
+  return uuid;
+}
+
+char* str_concat(const char *s1, const char *s2)
+{
+  char *result = calloc(1,strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+  strcpy(result, s1);
+  strcat(result, s2);
+  return result;
 }
