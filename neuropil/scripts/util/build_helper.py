@@ -7,6 +7,7 @@ import getpass
 import requests
 import collections
 import pathlib
+import json
 from pprint import pprint
 import platform as p
 
@@ -108,27 +109,27 @@ if __name__ == "__main__":
                 args.pw = getpass.getpass("Please insert key password: ")
 
             pathlib.Path(root_path).mkdir(parents=True, exist_ok=True)
-
+            print(f"try to package with key file {args.sign_file}")
             if not os.path.isfile(args.sign_file):
                 print("Creating DEV sign key. DO NOT USE FOR TEST OR PRODUCTION!")
                 #subprocess.check_call(("openssl genpkey -algorithm RSA -out "+args.sign_file+" -pkeyopt rsa_keygen_bits:4096 -des3 -pass pass:"+args.pw).split(" "))
                 subprocess.check_call(["openssl", "genrsa", "-aes128", "-passout", f"pass:{args.pw}", "-out", f"{args.sign_file}", "4096"])
                 subprocess.check_call(["openssl", "rsa", "-in", f"{args.sign_file}", "-passin", f"pass:{args.pw}", "-pubout", "-out", f"{args.sign_file}_public.pem"])
 
-                import shutil
-                os.makedirs(os.path.join('build', 'package', 'include'), exist_ok=True)
-                shutil.copytree(os.path.join("build",'neuropil',"lib"),         os.path.join('build', 'package', "lib"))
-                shutil.copytree(os.path.join("build",'neuropil',"bin"),         os.path.join('build', 'package', "bin"))
-                shutil.copytree(os.path.join("build","doc","html"),             os.path.join('build', 'package', "doc"))
-                shutil.copy(os.path.join("include","neuropil.h"),           os.path.join('build', 'package', "include","neuropil.h"))
-                shutil.copy(os.path.join("include","neuropil_attributes.h"),os.path.join('build', 'package', "include","neuropil_attributes.h"))
-                shutil.copy(os.path.join("include","neuropil_data.h"),      os.path.join('build', 'package', "include","neuropil_data.h"))
-                shutil.copy(os.path.join("README"),                         os.path.join('build', 'package', "README"))
-                shutil.copy(os.path.join("LICENSE"),                        os.path.join('build', 'package', "LICENSE"))
+            import shutil
+            os.makedirs(os.path.join('build', 'package', 'include'), exist_ok=True)
+            shutil.copytree(os.path.join("build",'neuropil',"lib"),         os.path.join('build', 'package', "lib"))
+            shutil.copytree(os.path.join("build",'neuropil',"bin"),         os.path.join('build', 'package', "bin"))
+            shutil.copytree(os.path.join("build","doc","html"),             os.path.join('build', 'package', "doc"))
+            shutil.copy(os.path.join("include","neuropil.h"),           os.path.join('build', 'package', "include","neuropil.h"))
+            shutil.copy(os.path.join("include","neuropil_attributes.h"),os.path.join('build', 'package', "include","neuropil_attributes.h"))
+            shutil.copy(os.path.join("include","neuropil_data.h"),      os.path.join('build', 'package', "include","neuropil_data.h"))
+            shutil.copy(os.path.join("README.md"),                         os.path.join('build', 'package', "README.md"))
+            shutil.copy(os.path.join("LICENSE"),                        os.path.join('build', 'package', "LICENSE"))
 
-                for (dirpath, dirnames, filenames) in os.walk(os.path.join('build', 'package', "lib")):
-                    for filename in filenames:
-                        sign_file(os.path.join(dirpath,filename), args.sign_file,  args.pw)
+            for (dirpath, dirnames, filenames) in os.walk(os.path.join('build', 'package', "lib")):
+                for filename in filenames:
+                    sign_file(os.path.join(dirpath,filename), args.sign_file,  args.pw)
 
         if args.gitlab_release:
             print(f"start gitlab release process")
@@ -137,7 +138,15 @@ if __name__ == "__main__":
             CI_PIPELINE_IID = os.environ.get("CI_PIPELINE_IID")
             project_id = os.getenv("CI_PROJECT_ID","14096230")
             base_url = os.environ.get("CI_SERVER_URL","https://gitlab.com")
-            api_url = f"{base_url}/api/v4"
+            api_url = os.environ.get("CI_API_V4_URL",f"{base_url}/api/v4")
+            project_path_slug = os.environ.get("CI_PROJECT_PATH", "pi-lar/neuropil")
+
+            print(f"tag_ref: {tag_ref}")
+            print(f"CI_PIPELINE_IID: {CI_PIPELINE_IID}")
+            print(f"project_id: {project_id}")
+            print(f"base_url: {base_url}")
+            print(f"api_url: {api_url}")
+            print(f"project_path_slug: {project_path_slug}")
 
             if not GITLAB_API_TOKEN:
                 GITLAB_API_TOKEN = getpass.getpass("Please insert GITLAB_API_TOKEN: ")
@@ -145,9 +154,9 @@ if __name__ == "__main__":
             headers = {
                   'PRIVATE-TOKEN': GITLAB_API_TOKEN
             }
-            project_config = requests.get(f"{api_url}/projects/{project_id}", headers=headers).json()
 
             release_url = f"{api_url}/projects/{project_id}/releases"
+
 
             release_payload = collections.OrderedDict({
                 "name": version_tag,
@@ -162,10 +171,11 @@ if __name__ == "__main__":
             targets = ['linux']
             # targets should contain all the build stages of the gitlab-ci build stage
             for target in targets:
-                print(f"adding asset link for target {target}")
+                target_url = f"{base_url}/{project_path_slug}/-/jobs/artifacts/{version}/download?job=package%3A{target}"
+                print(f"adding asset link for target {target} via {target_url}")
                 release_payload["assets"]["links"].append({
                     "name": f"{target}.zip",
-                    "url": f"{base_url}/{project_config['path_with_namespace']}/-/jobs/artifacts/{version}/download?job=package%3A{target}"
+                    "url": target_url
                 })
 
             print(f"Create release")
@@ -181,6 +191,9 @@ if __name__ == "__main__":
                 print("")
                 raise
 
+            print(f"remove latest_release tag protection")
+            requests.delete(f"{api_url}/projects/{project_id}/protected_tags/latest_release", headers=headers)
+
             print(f"remove latest_release tag")
             tags_url = f"{api_url}/projects/{project_id}/repository/tags"
 
@@ -194,6 +207,13 @@ if __name__ == "__main__":
             release_payload["ref"] = release_payload["tag_name"]
             release_payload["tag_name"] = "latest_release"
             release_payload["name"] = "Latest"
+
+            print(f"recreate latest_release tag protection")
+            requests.post(f"{api_url}/projects/{project_id}/protected_tags", headers=headers,json=json.dumps(
+                {
+                    "name": "latest_release",
+                }
+            ))
 
             print(f"recreate latest_release tag")
             r = requests.post(release_url, json=release_payload, headers=headers)

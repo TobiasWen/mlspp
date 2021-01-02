@@ -1,4 +1,0 @@
-[wrap-git]
-directory = nanopb
-url = https://github.com/nanopb/nanopb
-revision = nanopb-0.4.0

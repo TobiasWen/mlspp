@@ -20,6 +20,7 @@
 
 #include "core/np_comp_msgproperty.h"
 #include "core/np_comp_node.h"
+#include "core/np_comp_intent.h"
 #include "util/np_event.h"
 
 
@@ -120,6 +121,15 @@ np_context* np_new_context(struct np_settings * settings_in)
         log_msg(LOG_ERROR, "neuropil_init: could not init crypto library");
         status = np_startup;
     }
+    else if (_np_statistics_init(context) == false)
+    {
+        log_msg(LOG_ERROR, "neuropil_init: could not init statistics");
+        status = np_startup;
+    }
+    else if (_np_threads_init(context) == false) {
+        log_msg(LOG_ERROR, "neuropil_init: could not init threading mutexes");
+        status = np_startup;
+    }
     else if (_np_event_init(context) == false)
     {
         log_msg(LOG_ERROR, "neuropil_init: could not init event system");
@@ -128,10 +138,6 @@ np_context* np_new_context(struct np_settings * settings_in)
     else if (_np_log_init(context, settings->log_file, settings->log_level) == false) {
         log_msg(LOG_ERROR, "neuropil_init: could not init logging");
         status = np_startup;       
-    }
-    else if (_np_threads_init(context) == false) {
-        log_msg(LOG_ERROR, "neuropil_init: could not init threading mutexes");
-        status = np_startup;
     }
     else if (_np_memory_init(context) == false) {
         log_msg(LOG_ERROR, "neuropil_init: could not init memory");
@@ -282,10 +288,10 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
             {
                 log_msg(LOG_ERROR, "neuropil_init: _np_bootstrap_init failed: %s", strerror(errno));
                 ret = np_startup;
-            }				                    
-            else if (_np_statistics_init(context) == false) 
+            }
+            else if (!_np_statistics_enable(context))
             {
-                log_msg(LOG_ERROR, "neuropil_init: could not init statistics");
+                log_msg(LOG_ERROR, "neuropil_init: could not enable statistics");
                 ret = np_startup;
             }
             else 
@@ -479,9 +485,6 @@ bool np_has_receiver_for(np_context*ac, const char * subject)
     sll_free(np_aaatoken_ptr, receiver_list);
     np_unref_obj(np_key_t, prop_key, "_np_keycache_find");
 
-    // if (_np_route_my_key_has_connection(context)) {
-    // ret = true;
-    // }
     return ret;
 }
 
@@ -554,7 +557,7 @@ enum np_return np_send_to(np_context* ac, const char* subject, const unsigned ch
     np_util_event_t send_event = { .type=(evt_internal | evt_message), .context=ac, .user_data=msg_out, .target_dhkey=target_dhkey };
     // _np_keycache_handle_event(context, subject_dhkey, send_event, false);
 
-  if(!np_jobqueue_submit_event(context, NP_PI, subject_dhkey, send_event, "event: userspace message delivery request")){
+    if(!np_jobqueue_submit_event(context, 0.0, subject_dhkey, send_event, "event: userspace message delivery request")){
         log_msg(LOG_WARN, "rejecting possible sending of message, please check jobqueue settings!");
     }
 
