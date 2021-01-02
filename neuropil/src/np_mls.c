@@ -179,7 +179,7 @@ np_mls_create_client(np_context* ac)
 
   // add mls_client to context
   np_set_userdata(ac, new_client);
-  printf("MLS Client created!\n");
+  //printf("MLS Client created!\n");
   return new_client;
 }
 
@@ -706,8 +706,6 @@ np_mls_handle_message(np_mls_client* client,
         client, ac, welcome, subject_id_str, group_id);
     }
     case NP_MLS_PACKAGE_KEYPACKAGE: {
-
-
       // Extract kp from token and send welcome message
       np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
       if (source_data == NULL) {
@@ -727,6 +725,7 @@ np_mls_handle_message(np_mls_client* client,
       // add user to group if local client is group leader
       np_mls_group* group = hashtable_get(client->groups, subject_id_str);
       if (group != NULL && group->isCreator == true) {
+        printf("Received Keypackage!\n");
         // check if client was already added to group
         bool client_added = false;
         for(int i = 0; i < arraylist_size(group->added_clients); i++) {
@@ -737,6 +736,7 @@ np_mls_handle_message(np_mls_client* client,
           }
         }
         // Lock mutex
+        printf("Waiting on Mutex...\n");
         pthread_mutex_lock(client->lock);
         if(!client_added) {
           mls_bytes add = mls_session_add(group->local_session, kp);
@@ -765,6 +765,7 @@ np_mls_handle_message(np_mls_client* client,
           mls_delete_bytes_tuple(welcome_commit);
           mls_delete_bytes(welcome_packet);
           mls_delete_bytes(add);
+          sleep(1);
         }
         pthread_mutex_unlock(client->lock);
       }

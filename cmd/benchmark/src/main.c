@@ -4,6 +4,7 @@
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 void run_benchmark(np_mls_benchmark *benchmark);
 
@@ -22,7 +23,7 @@ main()
   np_mls_benchmark* benchmark =
     np_mls_create_benchmark("MyBenchmark",
                             "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                            32,
+                            8,
                             50,
                             5,
                             NP_MLS_BENCHMARK_MESH_TOPOLOGY,
@@ -63,10 +64,12 @@ void run_benchmark(np_mls_benchmark *benchmark) {
   /*struct np_settings ctrl_cfg;
   np_default_settings(&ctrl_cfg);
   np_context *ctrL_ac = np_new_context(&ctrl_cfg);
-  assert(np_ok == np_listen(ctrL_ac, "udp4", "localhost", port));*/
+  assert(np_ok == np_listen(ctrL_ac, "udp4", "localhost", port));
+  np_run(ctrL_ac, 0);*/
   // start nodes
   np_context** nodes = calloc(benchmark->num_clients_per_node, sizeof(np_context*));
   for(int i = 0; i < benchmark->num_clients_per_node; i++) {
+    sleep(1);
     port+=1;
     struct np_settings cfg;
     struct np_settings *settings = np_default_settings(&cfg);
@@ -126,6 +129,11 @@ void run_benchmark(np_mls_benchmark *benchmark) {
     }*/
     // nodes
     for(int i = 0; i < benchmark->num_clients_per_node; i++) {
+      if(i == 0) {
+        sleep(1);
+        np_send(nodes[0], "mysubject", "Hallo Welt!", 12);
+        printf("Sent!\n");
+      }
       if (np_ok != (tmp = np_run(nodes[i], 0))) {
         printf("Error in np_run on node nr:%d\n", i);
       }
@@ -142,13 +150,23 @@ bool authenticate (np_context *ac, struct np_token *id)
 bool
 authorize(np_context* ac, struct np_token* id)
 {
-  printf("Authorizing on subject %s issuer:%s\n", id->subject, id->issuer);
+  unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
+  np_node_fingerprint(ac, local_fingerprint);
+  char *local_fingerprint_str = calloc(1, 65);
+  np_id_str(local_fingerprint_str, local_fingerprint);
+  printf("[%s] Authorizing on subject %s issuer:%s\n", local_fingerprint_str, id->subject, id->issuer);
+  free(local_fingerprint_str);
   return true;
 }
 
 bool
 receive(np_context* ac, struct np_message* message)
 {
-  printf("Received: %.*s\n", (int)message->data_length, message->data);
+  unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
+  np_node_fingerprint(ac, local_fingerprint);
+  char *local_fingerprint_str = calloc(1, 65);
+  np_id_str(local_fingerprint_str, local_fingerprint);
+  printf("[%s] received: %.*s\n", local_fingerprint_str, (int)message->data_length, message->data);
+  free(local_fingerprint_str);
   return true;
 }
