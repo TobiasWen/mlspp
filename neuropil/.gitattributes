@@ -6,6 +6,7 @@
 *.jpg binary
 *.pdf binary
 *.ico binary
+*.gif binary
 
 *.js  filter=tabspace
 *.html  filter=tabspace
