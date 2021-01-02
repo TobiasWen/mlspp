@@ -1,6 +1,7 @@
-#pragma once
-#include "np_mls_client.h"
+#include "np_mls.h"
+#include "libbenchmark.h"
 #include "neuropil_attributes.h"
+#include "np_legacy.h"
 #include "np_types.h"
 #include "np_util.h"
 #include "sodium.h"
@@ -9,7 +10,153 @@
 #include "string.h"
 #include "util/np_tree.h"
 #include <assert.h>
+#include <core/np_comp_intent.h>
+#include <np_axon.h>
+#include <np_dendrit.h>
+#include <np_keycache.h>
+#include <np_message.h>
+#include <np_serialization.h>
 
+np_module_struct(mls) {
+  np_state_t* context;
+  np_mls_client *client;
+};
+
+// neuropil module functions
+bool _np_mls_init(np_state_t* context) {
+  np_module_malloc(mls);
+  _module->client = np_mls_create_client(context);
+  return true;
+}
+
+void _np_mls_destroy(np_state_t* context) {
+  np_mls_client *client = np_module(mls)->client;
+  if(client != NULL) {
+    np_mls_delete_client(client);
+  }
+  np_module_free(mls);
+}
+
+void _np_mls_register_protocol_subject(np_state_t* context, const char* subject, np_msgproperty_t* property) {
+    char protocol_subject[255];
+    sprintf(protocol_subject, "mls_%.250s", subject);
+    np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
+    mls_protocol_property->mls_connected = property;
+    property->mls_connected = mls_protocol_property;
+
+    if (true == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
+    {   // first encrypt the payload for receiver
+      sll_remove(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type);
+      sll_prepend(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper);
+    }
+
+    np_mls_client *mls_client = np_module(mls)->client;
+    if(property->mls_is_creator) {
+      np_mls_create_group(mls_client, protocol_subject, mls_client->id);
+    }
+    assert(np_ok == np_add_receive_cb(context, protocol_subject, np_mls_receive));
+    printf("Created mls protocol subject %s!\n", protocol_subject);
+}
+
+bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event) {
+  log_trace_msg(LOG_TRACE, "start: bool _np_in_mls_callback_wrapper(...){");
+
+  NP_CAST(msg_event.user_data, np_message_t, msg_in);
+
+  log_debug(LOG_MESSAGE, "(msg: %s) start mls callback wrapper",msg_in->uuid);
+
+  bool ret = true;
+  bool free_msg_subject = false;
+
+  CHECK_STR_FIELD(msg_in->header, _NP_MSG_HEADER_SUBJECT, msg_subject_ele);
+  CHECK_STR_FIELD(msg_in->header, _NP_MSG_HEADER_FROM, msg_from);
+
+  char* msg_subject = np_treeval_to_str(msg_subject_ele, &free_msg_subject);
+  np_msgproperty_t* msg_prop = _np_msgproperty_get(context, INBOUND, msg_subject);
+
+  if (_np_msgproperty_threshold_breached(msg_prop))
+  {
+    ret = false;
+  }
+  else
+  {
+    log_msg(LOG_INFO, "decrypting mls message(%s/%s)", msg_prop->msg_subject, msg_in->uuid);
+    // get mls client
+    np_mls_client *mls_client = np_module(mls)->client;
+    if(mls_client == NULL) {
+      ret = false;
+      printf("np_in_cb_wrapper mls client NULL\n");
+    } else {
+      // get group
+      char *subject_id_str = np_mls_get_id_string(msg_prop->mls_connected->msg_subject);
+      np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, subject_id_str);
+      if(group == NULL) {
+        printf("np_in_cb_wrapper group NULL\n");
+        ret = false;
+      } else {
+        printf("np_in_cb_wrapper decrypting\n");
+        benchmark_userdata *userdata = np_get_userdata(context);
+        np_mls_clock *my_clock = np_mls_clock_start();
+        ret = np_mls_decrypt_payload(msg_in, group->local_session);
+        np_mls_clock_stop(my_clock);
+        np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
+        np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
+        np_mls_add_int_to_list_result(NP_MLS_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
+        np_mls_clock_destroy(my_clock);
+      }
+      free(subject_id_str);
+    }
+  }
+  __np_cleanup__:
+  if (free_msg_subject) free(msg_subject);
+  return ret;
+}
+
+bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t event) {
+  log_trace_msg(LOG_TRACE, "start: void __np_out_mls_callback_wrapper(...){");
+
+  NP_CAST(event.user_data, np_message_t, message);
+  np_dhkey_t prop_dhkey = _np_msgproperty_dhkey(OUTBOUND, _np_message_get_subject(message) );
+  np_key_t*  prop_key   = _np_keycache_find(context, prop_dhkey);
+  NP_CAST(sll_first(prop_key->entities)->val, np_msgproperty_t, my_property);
+
+  bool ret = false;
+  log_msg(LOG_INFO, "encrypting mls message(%s/%s)", my_property->msg_subject, message->uuid);
+  // get mls client
+  np_mls_client *mls_client = np_module(mls)->client;
+  if(mls_client == NULL) {
+    ret = false;
+    printf("MLS Callback output wrapper client NULL!\n");
+  } else {
+    // get group
+    char *subject_id_str = np_mls_get_id_string(my_property->mls_connected->msg_subject);
+    np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, subject_id_str);
+    if(group == NULL) {
+      ret = false;
+      printf("MLS Callback output wrapper group NULL!\n");
+    } else {
+      // encrypt the message
+      benchmark_userdata *userdata = np_get_userdata(context);
+      np_mls_clock *my_clock = np_mls_clock_start();
+      ret = np_mls_encrypt_payload(message, group->local_session);
+      np_mls_clock_stop(my_clock);
+      np_mls_add_double_to_list_result(NP_MLS_ENCRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
+      np_mls_add_double_to_list_result(NP_MLS_ENCRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
+      np_mls_add_int_to_list_result(NP_MLS_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
+      np_mls_clock_destroy(my_clock);
+      np_tree_elem_t* enc_msg_part = np_tree_find_str(message->body, NP_ENCRYPTED);
+      if (NULL == enc_msg_part)
+      {
+        printf("couldn't find encrypted msg part in encryption method\n");
+        return (false);
+      }
+    }
+    free(subject_id_str);
+  }
+  return ret;
+}
+
+// client creation / deletion
 np_mls_client*
 np_mls_create_client(np_context* ac)
 {
@@ -32,6 +179,7 @@ np_mls_create_client(np_context* ac)
 
   // add mls_client to context
   np_set_userdata(ac, new_client);
+  //printf("MLS Client created!\n");
   return new_client;
 }
 
@@ -81,6 +229,7 @@ np_mls_delete_client(np_mls_client* client)
   hashtable_destroy(client->groups);
   hashtable_destroy(client->pending_joins);
   free(client);
+  printf("MLS Client deleted!\n");
   return true;
 }
 
@@ -112,6 +261,7 @@ np_mls_create_group(np_mls_client* client,
   strcpy(new_group->subject, subject);
   hashtable_set(client->groups, subject_id_str, new_group);
   arraylist_add(client->group_subjects, subject_id_str);
+  printf("MLS group created!\n");
   return new_group;
 }
 
@@ -128,6 +278,7 @@ np_mls_delete_group(np_mls_group* group)
   }
   free(group->subject);
   free(group);
+  printf("MLS group deleted!!\n");
 }
 
 bool
@@ -157,61 +308,37 @@ np_mls_subscribe(np_mls_client* client,
   return np_add_receive_cb(ac, subject, callback);
 }
 
-bool np_mls_authorize(np_context *ac, struct np_token *id) {
-  printf("Authorizing on subject %s  issuer:%s\n", id->subject, id->issuer);
-  // Extract kp from token
-  mls_bytes kp = np_ml_extract_kp(id);
+bool np_mls_receive(np_state_t* context, struct np_message* message) {
+  np_mls_client *mls_client = np_module(mls)->client;
+  bool ret = np_mls_handle_message(mls_client, context, message);
+  return ret;
+}
 
-  // get np_mls_client from context
-  np_mls_client* client = np_get_userdata(ac);
+bool np_mls_authorize(np_state_t *context, char *subject) {
+  //printf("Authorizing mls on subject %s\n", subject);
 
-  unsigned char subject_id[NP_FINGERPRINT_BYTES];
-  np_get_id(subject_id, id->subject, 0);
-  char subject_id_str[65];
-  np_id_str(subject_id_str, subject_id);
-  // add user to group if local client is group leader
-  np_mls_group* group = hashtable_get(client->groups, subject_id_str);
-  if (group != NULL && group->isCreator == true) {
-    // check if client was already added to group
-    bool client_added = false;
-    for(int i = 0; i < arraylist_size(group->added_clients); i++) {
-      char *client = arraylist_get(group->added_clients, i);
-      if(strcmp(client, id->issuer) == 0) {
-        client_added = true;
-        break;
-      }
+  // check if already in group for that subject
+  np_mls_client *client = np_module(mls)->client;
+  char *subject_id_str = np_mls_get_id_string(subject);
+  np_mls_group *group = np_mls_get_group_from_subject_id_str(client, context, subject_id_str);
+  if(group == NULL) {
+    // check if there already exists a pending join for this subject
+    if(hashtable_get(client->pending_joins, subject_id_str) != NULL) {
+      return true;
     }
-    // Lock mutex
-    pthread_mutex_lock(client->lock);
-    if(!client_added) {
-      mls_bytes add = mls_session_add(group->local_session, kp);
-      mls_bytes add_proposals[] = { add };
-      mls_bytes_tuple welcome_commit =
-        mls_session_commit(group->local_session, add_proposals, 1);
-      // create and send welcome on group channel
-      mls_bytes welcome_packet =
-        np_mls_create_packet_welcome(ac, welcome_commit.data1, group->id, id->issuer);
-      // add client to added_clients list
-      char *client_id = calloc(1, 65);
-      strcpy(client_id, id->issuer);
-      arraylist_add(group->added_clients, client_id);
-      // create and send commit encrypted on group channel
-      mls_bytes add_commit = np_mls_create_packet_group_operation(
-        ac, MLS_GRP_OP_ADD, id->issuer, add, welcome_commit.data2);
-      mls_session_handle(group->local_session, welcome_commit.data2);
-      np_mls_send(client, ac, id->subject, add_commit.data, add_commit.size);
-      assert(
-        np_ok ==
-        np_mls_send(
-          client, ac, id->subject, welcome_packet.data, welcome_packet.size));
-      printf("Sent welcome!\n");
-      // cleanup
-      mls_delete_bytes(add_commit);
-      mls_delete_bytes_tuple(welcome_commit);
-      mls_delete_bytes(welcome_packet);
-      mls_delete_bytes(add);
-    }
-    pthread_mutex_unlock(client->lock);
+    // create new key package
+    PendingJoin* join = mls_start_join(client->mls_client);
+    // add subject to reverse lookup hashtable
+    hashtable_set(client->ids_to_subjects, subject_id_str, subject);
+    arraylist_add(client->ids, subject_id_str);
+    hashtable_set(client->pending_joins, subject_id_str, join);
+    arraylist_add(client->pending_subjects, subject_id_str);
+    mls_bytes kp = mls_pending_join_get_key_package(join);
+    mls_bytes key_package = np_mls_create_packet_keypackage(context, kp);
+    // send key package
+    np_send(context, subject, key_package.data, key_package.size);
+    mls_delete_bytes(kp);
+    printf("Sent Keypackage!\n");
   }
   return true;
 }
@@ -312,6 +439,47 @@ np_mls_send(np_mls_client* client,
   return np_send(ac, subject, message, length);
 }
 
+// encrypt / decrypt
+bool np_mls_decrypt_payload(np_message_t *msg, Session *local_session) {
+  np_ctx_memory(msg);
+  np_tree_elem_t* enc_msg_part = np_tree_find_str(msg->body, NP_ENCRYPTED);
+  if (NULL == enc_msg_part)
+  {
+    log_msg(LOG_ERROR, "couldn't find encrypted msg part");
+    return (false);
+  }
+
+  mls_bytes encrypted = {.data = enc_msg_part->val.value.bin, .size = enc_msg_part->val.size };
+  mls_bytes decrypted = mls_unprotect(local_session, encrypted);
+
+  cmp_ctx_t cmp;
+  cmp_init(&cmp, decrypted.data, _np_buffer_reader, _np_buffer_skipper, _np_buffer_writer);
+  if(np_tree_deserialize( context, msg->body, &cmp) == false) {
+    log_debug_msg(LOG_ERROR, "couldn't deserialize msg part after decryption");
+    return false;
+  }
+  np_tree_del_str(msg->body, NP_ENCRYPTED);
+  return true;
+}
+
+bool np_mls_encrypt_payload(np_message_t *msg, Session *local_session) {
+  np_ctx_memory(msg);
+  cmp_ctx_t cmp = {0};
+  unsigned char msg_part_buffer[msg->body->byte_size*2];
+  void* msg_part_buf_ptr = msg_part_buffer;
+
+  cmp_init(&cmp, msg_part_buf_ptr, _np_buffer_reader, _np_buffer_skipper, _np_buffer_writer);
+  np_tree_serialize(context, msg->body, &cmp);
+  uint32_t msg_part_len = cmp.buf-msg_part_buf_ptr;
+
+  mls_bytes plaintext = {.data = msg_part_buf_ptr, .size = msg_part_len};
+  mls_bytes encrypted = mls_protect(local_session, plaintext);
+  np_tree_insert_str(msg->body, NP_ENCRYPTED,
+                                np_treeval_new_bin(encrypted.data, encrypted.size));
+  mls_delete_bytes(encrypted);
+  return true;
+}
+
 bool
 np_mls_get_group_index(np_mls_client* client,
                        const char* subject,
@@ -408,7 +576,6 @@ np_mls_create_packet_group_operation(np_context* ac,
       break;
   }
   np_tree_replace_str(packet, NP_MLS_PACKAGE_TYPE, np_treeval_new_i(type));
-  // ToDo: Encrypt data
   np_tree_replace_str(
     packet, NP_MLS_PACKAGE_DATA, np_treeval_new_bin(data.data, data.size));
   np_tree_replace_str(
@@ -444,11 +611,27 @@ np_mls_create_packet_welcome(np_context* ac,
   return output;
 }
 
+mls_bytes np_mls_create_packet_keypackage(np_state_t *context, mls_bytes data) {
+  np_tree_t* packet = np_tree_create();
+  np_tree_replace_str(
+    packet, NP_MLS_PACKAGE_TYPE, np_treeval_new_i(NP_MLS_PACKAGE_KEYPACKAGE));
+  np_tree_replace_str(
+    packet, NP_MLS_PACKAGE_DATA, np_treeval_new_bin(data.data, data.size));
+  mls_bytes output = { 0 };
+  output.size = packet->byte_size;
+  output.data = calloc(1, output.size);
+  np_tree2buffer(context, packet, output.data);
+  np_tree_free(packet);
+  return output;
+}
+
 bool
 np_mls_handle_message(np_mls_client* client,
                       np_context* ac,
                       struct np_message* message)
 {
+  //TODO: Return at end of function after free call and not in switch (memory leak)
+  //TODO: Dont convert message->subject to np_id
   np_tree_t* tree = np_tree_create();
   np_buffer2tree(ac, message->data, tree);
   // Get Type
@@ -459,22 +642,6 @@ np_mls_handle_message(np_mls_client* client,
   }
   np_mls_packet_type type = source_type->val.value.i;
   switch (type) {
-    case NP_MLS_PACKAGE_USERSPACE: {
-      char* subject_id_str = calloc(1, 65);
-      np_id_str(subject_id_str, message->subject);
-      np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
-      if (source_data == NULL) {
-        printf("Couldn't find userspace data\n");
-        return true;
-      }
-      mls_bytes userdata = { 0 };
-      size_t userdata_data_size = source_data->val.size;
-      userdata.data = calloc(1, userdata_data_size);
-      userdata.size = userdata_data_size;
-      memcpy(userdata.data, source_data->val.value.bin, userdata_data_size);
-      np_mls_handle_userspace(client, ac, userdata, subject_id_str);
-      break;
-    }
     case NP_MLS_PACKAGE_ADD: {
       np_mls_group_operation op = MLS_GRP_OP_ADD;
       char* subject_id_str = calloc(1, 65);
@@ -525,7 +692,7 @@ np_mls_handle_message(np_mls_client* client,
       // get group id
       np_tree_elem_t* source_id = np_tree_find_str(tree, NP_MLS_PACKAGE_GROUP_ID);
       if (source_id == NULL) {
-        printf("Couldn't find group id\n");
+        printf("Couldn't find group id from welcome packet\n");
         return true;
       }
       mls_bytes group_id = { 0 };
@@ -538,12 +705,79 @@ np_mls_handle_message(np_mls_client* client,
       return np_mls_handle_welcome(
         client, ac, welcome, subject_id_str, group_id);
     }
+    case NP_MLS_PACKAGE_KEYPACKAGE: {
+      // Extract kp from token and send welcome message
+      np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
+      if (source_data == NULL) {
+        printf("Couldn't find keypackage data in received keypackage\n");
+        return true;
+      }
+      mls_bytes kp = { 0 };
+      size_t welcome_data_size = source_data->val.size;
+      kp.data = calloc(1, welcome_data_size);
+      kp.size = welcome_data_size;
+      memcpy(kp.data, source_data->val.value.bin, welcome_data_size); //TODO: dont need memcpy
+
+      char subject_id_str[65];
+      np_id_str(subject_id_str, message->subject);
+      char issuer_id_str[65];
+      np_id_str(issuer_id_str, message->from);
+      // add user to group if local client is group leader
+      np_mls_group* group = hashtable_get(client->groups, subject_id_str);
+      if (group != NULL && group->isCreator == true) {
+        printf("Received Keypackage!\n");
+        // check if client was already added to group
+        bool client_added = false;
+        for(int i = 0; i < arraylist_size(group->added_clients); i++) {
+          char *added_client = arraylist_get(group->added_clients, i);
+          if(strcmp(added_client, issuer_id_str) == 0) {
+            client_added = true;
+            break;
+          }
+        }
+        // Lock mutex
+        printf("Waiting on Mutex...\n");
+        pthread_mutex_lock(client->lock);
+        if(!client_added) {
+          mls_bytes add = mls_session_add(group->local_session, kp);
+          mls_bytes add_proposals[] = { add };
+          mls_bytes_tuple welcome_commit =
+            mls_session_commit(group->local_session, add_proposals, 1);
+          // create and send welcome on group channel
+          mls_bytes welcome_packet =
+            np_mls_create_packet_welcome(ac, welcome_commit.data1, group->id, issuer_id_str);
+          // add client to added_clients list
+          char *client_id = calloc(1, 65);
+          strcpy(client_id, issuer_id_str);
+          arraylist_add(group->added_clients, client_id);
+          // create and send commit encrypted on group channel
+          mls_bytes add_commit = np_mls_create_packet_group_operation(
+            ac, MLS_GRP_OP_ADD, issuer_id_str, add, welcome_commit.data2);
+          mls_session_handle(group->local_session, welcome_commit.data2);
+          np_mls_send(client, ac, group->subject, add_commit.data, add_commit.size);
+          assert(
+            np_ok ==
+            np_mls_send(
+              client, ac, group->subject, welcome_packet.data, welcome_packet.size));
+          printf("Sent welcome!\n");
+          // cleanup
+          mls_delete_bytes(add_commit);
+          mls_delete_bytes_tuple(welcome_commit);
+          mls_delete_bytes(welcome_packet);
+          mls_delete_bytes(add);
+          sleep(1);
+        }
+        pthread_mutex_unlock(client->lock);
+      }
+      break;
+    }
     case NP_MLS_PACKAGE_UNKNOWN:
       break;
     default:
       return true;
   }
   free(tree);
+  return true;
 }
 
 bool
@@ -562,25 +796,29 @@ np_mls_handle_welcome(np_mls_client* client,
   }
   // get pending join for subject
   PendingJoin* join = hashtable_get(client->pending_joins, subject);
-  Session* local_session = mls_pending_join_complete(join, welcome);
-  // create group
-  np_mls_group* new_group = calloc(1, sizeof(*new_group));
-  new_group->local_session = local_session;
-  new_group->id = group_id;
-  new_group->isCreator = false;
-  new_group->isInitialized = true;
-  new_group->subject = hashtable_get(client->ids_to_subjects, subject);
-  hashtable_set(client->groups, subject, new_group);
-  printf("Successfully joined group!\n");
+  if(join != NULL) {
+    Session* local_session = mls_pending_join_complete(join, welcome);
+    // create group
+    np_mls_group* new_group = calloc(1, sizeof(*new_group));
+    new_group->local_session = local_session;
+    new_group->id = group_id;
+    new_group->isCreator = false;
+    new_group->isInitialized = true;
+    new_group->subject = hashtable_get(client->ids_to_subjects, subject);
+    hashtable_set(client->groups, subject, new_group);
+    printf("Successfully joined group!\n");
+  } else {
+    printf("No PendingJoin for welcome packet!\n");
+  }
   pthread_mutex_unlock(client->lock);
   return true;
 }
 
 bool
 np_mls_handle_userspace(np_mls_client* client,
-                         np_context* ac,
-                         mls_bytes message,
-                         const char* subject)
+                        np_context* ac,
+                        mls_bytes message,
+                        const char* subject)
 {
   // check if already in group
   np_mls_group* group = hashtable_get(client->groups, subject);

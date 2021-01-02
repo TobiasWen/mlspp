@@ -84,6 +84,11 @@ target_include_directories(${LIB_NAME}
 add_subdirectory(test)
 
 ###
+### libbenchmark
+###
+add_subdirectory(libbenchmark)
+
+###
 ### C API Wrapper
 ###
 

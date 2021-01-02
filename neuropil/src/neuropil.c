@@ -8,7 +8,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <core/np_comp_intent.h>
 #include <inttypes.h>
+#include <np_mls.h>
 #include <unistd.h>
 
 #include "sodium.h"
@@ -27,6 +29,7 @@
 #include "np_aaatoken.h"
 #include "np_attributes.h"
 #include "np_bootstrap.h"
+#include "np_dendrit.h"
 #include "np_dhkey.h"
 #include "np_event.h"
 #include "np_jobqueue.h"
@@ -292,6 +295,11 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
             else if (!_np_statistics_enable(context))
             {
                 log_msg(LOG_ERROR, "neuropil_init: could not enable statistics");
+                ret = np_startup;
+            }
+            else if (_np_mls_init(context) == false)
+            {
+                log_msg(LOG_ERROR, "neuropil_init: _np_mls_init failed");
                 ret = np_startup;
             }
             else 
@@ -664,10 +672,14 @@ enum np_return np_set_mx_properties(np_context* ac, const char* subject, struct 
     // TODO: validate user_property
     struct np_mx_properties safe_user_property = user_property;
     safe_user_property.reply_subject[254] = 0;
- 
-    np_msgproperty_t* property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, subject);
-    np_msgproperty_from_user(context, property, &safe_user_property);
 
+    np_msgproperty_t* property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, subject);
+    bool mls_used = property->encryption_algorithm != MLS_ENCRYPTION && user_property.encryption_algorithm == MLS_ENCRYPTION;
+
+    np_msgproperty_from_user(context, property, &safe_user_property);
+    if(mls_used) {
+      _np_mls_register_protocol_subject(context, subject, property);
+    }
     return ret;
 }
 
@@ -675,7 +687,7 @@ enum np_return np_run(np_context* ac, double duration) {
     np_ctx_cast(ac);
     enum np_return ret = np_ok;
     np_thread_t * thread = _np_threads_get_self(context);
-    
+
     if (!__np_is_already_listening(context)) 
     {
         ret = np_listen(ac, _np_network_get_protocol_string(context, PASSIVE | IPv4), "localhost", 31415);
@@ -760,6 +772,7 @@ void np_destroy(np_context* ac, bool gracefully)
     TSP_SET(context->status, np_stopped);
 
     // destroy modules
+    _np_mls_destroy(context);
     // _np_sysinfo_destroy_cache(context);
     _np_shutdown_destroy(context);    
     _np_bootstrap_destroy(context);

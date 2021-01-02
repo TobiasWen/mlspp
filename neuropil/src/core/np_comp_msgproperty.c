@@ -7,14 +7,15 @@
 // this file conatins the state machine conditions, transitions and states that a node can
 // have. It is included form np_key.c, therefore there are no extra #include directives.
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdio.h>
 #include <inttypes.h>
 #include <math.h>
+#include <np_mls.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
-#include "core/np_comp_msgproperty.h"
 #include "core/np_comp_intent.h"
+#include "core/np_comp_msgproperty.h"
 
 #include "np_axon.h"
 #include "np_aaatoken.h"
@@ -270,6 +271,9 @@ np_msgproperty_t* _np_msgproperty_get_or_create(np_state_t* context, np_msg_mode
         ret->msg_subject = strndup(subject, 255);
         ret->mode_type = mode_type;
         ret->mep_type = ANY_TO_ANY;
+        ret->encryption_algorithm = NEUROPIL_ENCRYPTION;
+        ret->mls_is_creator = false;
+        ret->mls_connected = NULL;
         np_msgproperty_register(ret);
     } 
 
@@ -984,6 +988,8 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
     dest->max_parallel = src->max_threshold;
     dest->max_retry = src->retry;
 
+    dest->encryption_algorithm = src->encryption_algorithm;
+    dest->mls_is_creator = src->mls_is_creator;
     if(src->rep_subject != NULL) {
         strncpy(dest->reply_subject, src->rep_subject, 255);
     }
@@ -1026,9 +1032,12 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
 
 void np_msgproperty_from_user(np_state_t* context, np_msgproperty_t* dest, struct np_mx_properties* src) 
 {
-	assert(context != NULL);
+    assert(context != NULL);
     assert(src != NULL);
     assert(dest != NULL);
+
+    dest->encryption_algorithm = src->encryption_algorithm;
+    dest->mls_is_creator = src->mls_is_creator;
 
     if (src->intent_ttl > 0.0) {
         dest->token_max_ttl = src->intent_ttl;
@@ -1131,11 +1140,11 @@ void __np_set_property(np_util_statemachine_t* statemachine, const np_util_event
 
     if (property->is_internal == false) {
         _np_msgproperty_create_token_ledger(statemachine, event);
-        if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type)) 
-        {   // first encrypt the payload for receiver 
-            sll_append(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper);
-        }
 
+        if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
+        {   // first encrypt the payload for receiver
+          sll_append(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper);
+        }
         if (false == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_default, np_evt_callback_t_sll_compare_type)) 
         {   // then route and send message
             sll_append(np_evt_callback_t, property->clb_outbound, _np_out_default);
@@ -1204,7 +1213,8 @@ void __np_msgproperty_send_available_messages(np_util_statemachine_t* statemachi
 
     if (_np_dhkey_equal(&property_key->dhkey, &recv_dhkey) &&
        ( (now - property->last_intent_rx_update) > property->token_min_ttl) &&
-       sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+       (sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+        sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {   // send our token, search for sender of messages
         np_message_t* msg_out = NULL;
         np_new_obj(np_message_t, msg_out, ref_message_in_send_system);
@@ -1283,7 +1293,8 @@ void __np_msgproperty_send_pheromone_messages(np_util_statemachine_t* statemachi
     }
 
     if (is_recv &&
-        sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+      (sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+       sll_contains(np_evt_callback_t, property->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {
         np_tree_insert_int(bloom_data,  (target_dhkey.t[0] % 257)+1, np_treeval_new_bin((void*) buffer, buffer_size));
         log_debug_msg(LOG_DEBUG, "adding %25s bloom data at %i", property->msg_subject, (target_dhkey.t[0] % 257)+1);
@@ -1572,10 +1583,15 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
 
     // choose correct target ledger
     if (_np_dhkey_equal(&target_inbound_dhkey, &my_property_key->dhkey) &&
-        sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type))
+      (sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_callback_wrapper, np_evt_callback_t_sll_compare_type) ||
+       sll_contains(np_evt_callback_t, real_prop->clb_inbound, _np_in_mls_callback_wrapper, np_evt_callback_t_sll_compare_type)))
     {
         log_msg(LOG_INFO, "adding sending intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_sender(my_property_key, intent_token);
+        if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+          np_mls_authorize(context, real_prop->mls_connected->msg_subject);
+        }
+
         np_unref_obj(np_aaatoken_t, old_token, "send_tokens");
 
         // check if some messages are left in the cache
@@ -1588,6 +1604,9 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding receiver intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_receiver(my_property_key, intent_token);
+        if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+          np_mls_authorize(context, real_prop->mls_connected->msg_subject);
+        }
         np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");
 
         // check if some messages are left in the cache
