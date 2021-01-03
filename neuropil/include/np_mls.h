@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+static const char* NP_MLS_IS_CREATOR = "np.mls.creator";
 static const char* NP_MLS_KP_KEY = "np.mls.kp";
 static const char* NP_MLS_PACKAGE_TYPE = "np.mls.type";
 static const char* NP_MLS_PACKAGE_DATA = "np.mls.data";
@@ -38,6 +39,11 @@ typedef enum  {
 } np_mls_group_operation;
 
 typedef struct {
+  bool userspace_authorized;
+  bool protocol_authorized;
+} np_mls_authorization_state;
+
+typedef struct {
   mls_bytes id;
   Session *local_session;
   arraylist *added_clients;
@@ -55,6 +61,7 @@ typedef struct {
   arraylist *ids;
   hashtable *pending_joins;
   arraylist *pending_subjects;
+  hashtable *subject_authorization_state;
   pthread_mutex_t *lock;
 } np_mls_client;
 
@@ -104,6 +111,10 @@ np_mls_group* np_mls_get_group_from_subject_id_str(np_mls_client *client, np_con
 
 // extract kp from token
 mls_bytes np_ml_extract_kp(struct np_token* id);
+
+// check if token owner is group creator
+bool np_mls_get_creator_status(struct np_token* id);
+np_mls_client* np_mls_get_client_from_module(struct np_state_s *context);
 
 // network packets
 mls_bytes np_mls_create_packet_userspace(np_context *ac, Session *local_session, mls_bytes data);

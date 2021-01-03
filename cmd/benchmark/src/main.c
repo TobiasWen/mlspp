@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <neuropil_attributes.h>
+#include <np_mls.h>
 
 void run_benchmark(np_mls_benchmark *benchmark);
 
@@ -23,7 +25,7 @@ main()
   np_mls_benchmark* benchmark =
     np_mls_create_benchmark("MyBenchmark",
                             "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                            8,
+                            2,
                             50,
                             5,
                             NP_MLS_BENCHMARK_MESH_TOPOLOGY,
@@ -69,7 +71,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
   // start nodes
   np_context** nodes = calloc(benchmark->num_clients_per_node, sizeof(np_context*));
   for(int i = 0; i < benchmark->num_clients_per_node; i++) {
-    sleep(1);
+    //sleep(1);
     port+=1;
     struct np_settings cfg;
     struct np_settings *settings = np_default_settings(&cfg);
@@ -108,7 +110,11 @@ void run_benchmark(np_mls_benchmark *benchmark) {
     struct np_mx_properties props = np_get_mx_properties(nodes[i], "mysubject");
     if(benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
       props.encryption_algorithm = MLS_ENCRYPTION;
-      props.mls_is_creator = benchmark->has_sender && i == 0;
+      bool is_creator = benchmark->has_sender && i == 0;
+      unsigned char creator_char = (unsigned char) (is_creator ? "1" : "0");
+      props.mls_is_creator = is_creator;
+      np_set_mxp_attr_bin(
+              nodes[i], "mysubject", NP_ATTR_INTENT, NP_MLS_IS_CREATOR, &creator_char, sizeof(creator_char));
     }
     np_set_mx_properties(nodes[i], "mysubject", props);
     assert(np_ok == np_add_receive_cb(nodes[i], "mysubject", receive));
@@ -130,7 +136,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
     // nodes
     for(int i = 0; i < benchmark->num_clients_per_node; i++) {
       if(i == 0) {
-        sleep(1);
+        sleep(3);
         np_send(nodes[0], "mysubject", "Hallo Welt!", 12);
         printf("Sent!\n");
       }
