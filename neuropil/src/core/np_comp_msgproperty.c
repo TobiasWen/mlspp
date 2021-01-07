@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <libbenchmark.h>
 
 #include "core/np_comp_intent.h"
 #include "core/np_comp_msgproperty.h"
@@ -1588,19 +1589,19 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding sending intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_sender(my_property_key, intent_token);
-        if(IS_AUTHORIZED(intent_token->state) &&
-        (real_prop->encryption_algorithm == MLS_ENCRYPTION || strstr(real_prop->msg_subject, "mls_") != NULL
-        && np_mls_get_creator_status(intent_token))) {
+        if(IS_AUTHORIZED(intent_token->state)) {
             np_mls_client *mls_client = np_mls_get_client_from_module(context);
-            np_mls_authorization_state *auth_state = hashtable_get(mls_client->subject_authorization_state, real_prop->msg_subject);
-            if(auth_state == NULL) {
-                auth_state = calloc(1, sizeof(*auth_state));
-                hashtable_set(mls_client->subject_authorization_state, real_prop->msg_subject, auth_state);
+            benchmark_userdata *userdata = np_get_userdata(context);
+            char *protocol_subject;
+            if(real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+                np_mls_add_auth_userspace(mls_client, real_prop->msg_subject, intent_token->issuer);
+                protocol_subject = real_prop->mls_connected->msg_subject;
+            } else if(strstr(real_prop->msg_subject, "mls_") != NULL) {
+                np_mls_add_auth_mls(mls_client, real_prop->mls_connected->msg_subject, intent_token->issuer);
+                protocol_subject = real_prop->msg_subject;
             }
-            auth_state->userspace_authorized = real_prop->encryption_algorithm == MLS_ENCRYPTION;
-            auth_state->protocol_authorized = strstr(real_prop->msg_subject, "mls_") != NULL;
-            if(auth_state->protocol_authorized && auth_state->userspace_authorized) {
-                np_mls_authorize(context, real_prop->mls_connected->msg_subject);
+            if(np_mls_is_everyone_authorized(mls_client, real_prop->msg_subject, userdata->benchmark->num_clients_per_node) && !real_prop->mls_is_creator) {
+                np_mls_authorize(context, protocol_subject);
             }
         }
 
@@ -1616,19 +1617,19 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding receiver intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_receiver(my_property_key, intent_token);
-        if(IS_AUTHORIZED(intent_token->state) &&
-           (real_prop->encryption_algorithm == MLS_ENCRYPTION || strstr(real_prop->msg_subject, "mls_") != NULL
-                                                                 && np_mls_get_creator_status(intent_token))) {
+        if(IS_AUTHORIZED(intent_token->state)) {
             np_mls_client *mls_client = np_mls_get_client_from_module(context);
-            np_mls_authorization_state *auth_state = hashtable_get(mls_client->subject_authorization_state, real_prop->msg_subject);
-            if(auth_state == NULL) {
-                auth_state = calloc(1, sizeof(*auth_state));
-                hashtable_set(mls_client->subject_authorization_state, real_prop->msg_subject, auth_state);
+            benchmark_userdata *userdata = np_get_userdata(context);
+            char *protocol_subject;
+            if(real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+                np_mls_add_auth_userspace(mls_client, real_prop->msg_subject, intent_token->issuer);
+                protocol_subject = real_prop->mls_connected->msg_subject;
+            } else if(strstr(real_prop->msg_subject, "mls_") != NULL) {
+                np_mls_add_auth_mls(mls_client, real_prop->mls_connected->msg_subject, intent_token->issuer);
+                protocol_subject = real_prop->msg_subject;
             }
-            auth_state->userspace_authorized = real_prop->encryption_algorithm == MLS_ENCRYPTION;
-            auth_state->protocol_authorized = strstr(real_prop->msg_subject, "mls_") != NULL;
-            if(auth_state->protocol_authorized && auth_state->userspace_authorized) {
-                np_mls_authorize(context, real_prop->mls_connected->msg_subject);
+            if(np_mls_is_everyone_authorized(mls_client, real_prop->msg_subject, userdata->benchmark->num_clients_per_node) && !real_prop->mls_is_creator) {
+                np_mls_authorize(context, protocol_subject);
             }
         }
         np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");

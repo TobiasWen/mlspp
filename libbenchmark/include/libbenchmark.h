@@ -110,6 +110,8 @@ bool np_mls_clock_destroy(np_mls_clock *clock);
 // utility
 char* generateUUID();
 char* str_concat(const char *s1, const char *s2);
+double np_mls_get_double_average(char *key, np_mls_benchmark_result *result);
+double np_mls_get_int_average(char *key, np_mls_benchmark_result *result);
 /**
    TODO: List for benchmarking
    1.(✓) Datastructure for the benchmark data itself

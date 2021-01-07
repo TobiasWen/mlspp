@@ -39,9 +39,10 @@ void _np_mls_destroy(np_state_t* context) {
 
 void _np_mls_register_protocol_subject(np_state_t* context, const char* subject, np_msgproperty_t* property) {
     char protocol_subject[255];
-    sprintf(protocol_subject, "mls_%.250s", subject);
+    snprintf(protocol_subject,250, "mls_%s", subject);
     np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
     mls_protocol_property->mls_connected = property;
+    mls_protocol_property->token_max_ttl = 10.0;
     property->mls_connected = mls_protocol_property;
 
     if (true == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
@@ -49,14 +50,24 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
       sll_remove(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type);
       sll_prepend(np_evt_callback_t, property->clb_outbound, _np_out_mls_callback_wrapper);
     }
-
     np_mls_client *mls_client = np_module(mls)->client;
     if(property->mls_is_creator) {
         np_mls_create_group(mls_client, protocol_subject, mls_client->id);
         mls_protocol_property->mls_is_creator = true;
     }
-    np_set_mxp_attr_bin(
-            context, protocol_subject, NP_ATTR_INTENT, NP_MLS_IS_CREATOR, &mls_protocol_property->mls_is_creator, sizeof(bool));
+
+    /*unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
+    np_node_fingerprint(context, local_fingerprint);
+    char *local_fingerprint_str = calloc(1, 65);
+    np_id_str(local_fingerprint_str, local_fingerprint);
+    printf("[%s] Added creator flag to token for subject 'mls_mysubject'.\n", local_fingerprint_str);
+    unsigned char creator_char = (unsigned char) (mls_protocol_property->mls_is_creator ? '1' : '0');
+    if(np_data_ok == np_set_mxp_attr_bin(
+            context, protocol_subject, NP_ATTR_INTENT, "test123", local_fingerprint, NP_FINGERPRINT_BYTES)) {
+        printf("Set creator flag for protocol_subject!\n");
+    } else {
+        printf("Couldn't set creator flag for protocol_subject!\n");
+    }*/
     assert(np_ok == np_add_receive_cb(context, protocol_subject, np_mls_receive));
     printf("Created mls protocol subject %s on client %s!\n", protocol_subject, mls_client->id);
 }
@@ -177,13 +188,14 @@ np_mls_create_client(np_context* ac)
   new_client->ids = arraylist_create();
   new_client->pending_joins = hashtable_create();
   new_client->pending_subjects = arraylist_create();
+  new_client->authorized_users = arraylist_create();
   new_client->subject_authorization_state = hashtable_create();
   new_client->lock = calloc(1, sizeof(*new_client->lock));
   pthread_mutex_init(new_client->lock, NULL);
 
   // add mls_client to context
   np_set_userdata(ac, new_client);
-  //printf("MLS Client created!\n");
+  // printf("MLS Client created!\n");
   return new_client;
 }
 
@@ -201,9 +213,18 @@ np_mls_delete_client(np_mls_client* client)
         assert(np_mls_delete_group(group));
         hashtable_remove(client->groups, cur_subject);
       }
-      np_mls_authorization_state *auth_state = hashtable_get(client->subject_authorization_state, cur_subject);
-      if(auth_state != NULL) {
-          free(auth_state);
+      hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, cur_subject);
+      if(subject_clients_auth_state != NULL) {
+          for(int l = 0; l < arraylist_size(client->authorized_users); l++) {
+              char *user = arraylist_get(client->authorized_users, l);
+              if(user != NULL) {
+                  np_mls_authorization_state *auth_state = hashtable_get(subject_clients_auth_state, user);
+                  if(auth_state != NULL) {
+                      free(auth_state);
+                  }
+              }
+          }
+          hashtable_destroy(subject_clients_auth_state);
       }
       free(cur_subject);
     }
@@ -231,11 +252,21 @@ np_mls_delete_client(np_mls_client* client)
       free(cur_subject);
     }
   }
+
+  for(int i = 0; i < arraylist_size(client->authorized_users); i++) {
+      char *user = arraylist_get(client->authorized_users, i);
+      if(user != NULL) {
+          free(user);
+      }
+  }
+
   pthread_mutex_unlock(client->lock);
   pthread_mutex_destroy(client->lock);
   arraylist_destroy(client->group_subjects);
   hashtable_destroy(client->groups);
   hashtable_destroy(client->pending_joins);
+  hashtable_destroy(client->subject_authorization_state);
+  arraylist_destroy(client->authorized_users);
   free(client);
   printf("MLS Client deleted!\n");
   return true;
@@ -345,9 +376,10 @@ bool np_mls_authorize(np_state_t *context, char *subject) {
     mls_bytes kp = mls_pending_join_get_key_package(join);
     mls_bytes key_package = np_mls_create_packet_keypackage(context, kp);
     // send key package
+    //sleep(3);
     np_send(context, subject, key_package.data, key_package.size);
     mls_delete_bytes(kp);
-    printf("[%s] Sent Keypackage!\n", client->id);
+    printf("[%s] Sent Keypackage on subject %s!\n", client->id, subject);
   }
   return true;
 }
@@ -531,16 +563,88 @@ np_ml_extract_kp(struct np_token* id)
 }
 
 bool np_mls_get_creator_status(struct np_token* id) {
+  printf("Get Creator Status function!\n");
   bool is_creator = false;
   struct np_data_conf conf_data = { 0 };
-  struct np_data_conf* conf_data_p = &conf_data;
-  unsigned char* out_data = NULL;
-  np_get_token_attr_bin(id, NP_MLS_IS_CREATOR, &conf_data_p, &out_data);
-  if(out_data != NULL) {
-    printf("Out_Data: %s\n", *out_data);
+  np_data_value out_data = {0};
+  if((np_data_ok == np_get_data(id->attributes, "mls_creator", &conf_data, &out_data))) {
+    int data = out_data.integer;
+    printf("Out_Data: %c\n", data);
+    is_creator = data == 1 ? true : false;
     printf("Creator status of token is: %s\n", is_creator ? "true" : "false");
+  } else {
+      printf("NP_NICHT_OK!\n");
   }
   return is_creator;
+}
+
+bool np_mls_is_everyone_authorized(np_mls_client *client, char *subject, int client_count) {
+    if(client != NULL && subject != NULL &&client_count > 0) {
+        // get users for subject
+        int fully_authorized_clients_num = 0;
+        hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, subject);
+        if(subject_clients_auth_state != NULL) {
+            for(int i = 0; i < arraylist_size(client->authorized_users); i++) {
+                char *user = arraylist_get(client->authorized_users, i);
+                if(user != NULL) {
+                    np_mls_authorization_state *auth_state = hashtable_get(subject_clients_auth_state, user);
+                    if(auth_state != NULL && auth_state->userspace_authorized && auth_state->protocol_authorized) {
+                        fully_authorized_clients_num++;
+                    }
+                }
+            }
+            if(fully_authorized_clients_num >= client_count - 1) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+bool np_mls_add_auth_userspace(np_mls_client *client, char *subject, char* issuer) {
+    if(client != NULL && subject != NULL && issuer != NULL) {
+        pthread_mutex_lock(client->lock);
+        hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, subject);
+        if(subject_clients_auth_state == NULL) {
+            subject_clients_auth_state = hashtable_create();
+            hashtable_set(client->subject_authorization_state, subject, subject_clients_auth_state);
+        }
+        np_mls_authorization_state *auth_state = hashtable_get(subject_clients_auth_state, issuer);
+        if(auth_state == NULL) {
+            // user doesnt exist
+            auth_state = calloc(1, sizeof(*auth_state));
+            char *issuer_copy = calloc(1, strlen(issuer) * (sizeof(*issuer_copy) + 1));
+            strcpy(issuer_copy, issuer);
+            arraylist_add(client->authorized_users, issuer_copy);
+            hashtable_set(subject_clients_auth_state, issuer_copy, auth_state);
+        }
+        auth_state->userspace_authorized = true;
+        pthread_mutex_unlock(client->lock);
+        return true;
+    }
+    return false;
+}
+bool np_mls_add_auth_mls(np_mls_client *client, char *subject, char* issuer) {
+    if(client != NULL && subject != NULL && issuer != NULL) {
+        pthread_mutex_lock(client->lock);
+        hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, subject);
+        if(subject_clients_auth_state == NULL) {
+            subject_clients_auth_state = hashtable_create();
+            hashtable_set(client->subject_authorization_state, subject, subject_clients_auth_state);
+        }
+        np_mls_authorization_state *auth_state = hashtable_get(subject_clients_auth_state, issuer);
+        if(auth_state == NULL) {
+            // user doesnt exist
+            auth_state = calloc(1, sizeof(*auth_state));
+            char *issuer_copy = calloc(1, strlen(issuer) * (sizeof(*issuer_copy) + 1));
+            strcpy(issuer_copy, issuer);
+            arraylist_add(client->authorized_users, issuer_copy);
+            hashtable_set(subject_clients_auth_state, issuer_copy, auth_state);
+        }
+        auth_state->protocol_authorized = true;
+        pthread_mutex_unlock(client->lock);
+        return true;
+    }
+    return false;
 }
 
 np_mls_client* np_mls_get_client_from_module(struct np_state_s *context) {
@@ -732,10 +836,15 @@ np_mls_handle_message(np_mls_client* client,
         client, ac, welcome, subject_id_str, group_id);
     }
     case NP_MLS_PACKAGE_KEYPACKAGE: {
+      // Lock mutex
+      printf("[%s] Waiting on KP Mutex...\n", client->id);
+      pthread_mutex_lock(client->lock);
       // Extract kp from token and send welcome message
       np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
       if (source_data == NULL) {
         printf("Couldn't find keypackage data in received keypackage\n");
+        printf("Realeasing Mutex...\n");
+        pthread_mutex_unlock(client->lock);
         return true;
       }
       mls_bytes kp = { 0 };
@@ -749,6 +858,7 @@ np_mls_handle_message(np_mls_client* client,
       char issuer_id_str[65];
       np_id_str(issuer_id_str, message->from);
       // add user to group if local client is group leader
+      printf("Subject ID String:%s \n", subject_id_str);
       np_mls_group* group = hashtable_get(client->groups, subject_id_str);
       if (group != NULL && group->isCreator == true) {
         printf("Received Keypackage!\n");
@@ -761,9 +871,7 @@ np_mls_handle_message(np_mls_client* client,
             break;
           }
         }
-        // Lock mutex
-        printf("Waiting on Mutex...\n");
-        pthread_mutex_lock(client->lock);
+
         if(!client_added) {
           mls_bytes add = mls_session_add(group->local_session, kp);
           mls_bytes add_proposals[] = { add };
@@ -780,6 +888,7 @@ np_mls_handle_message(np_mls_client* client,
           mls_bytes add_commit = np_mls_create_packet_group_operation(
             ac, MLS_GRP_OP_ADD, issuer_id_str, add, welcome_commit.data2);
           mls_session_handle(group->local_session, welcome_commit.data2);
+          sleep(3);
           np_mls_send(client, ac, group->subject, add_commit.data, add_commit.size);
           assert(
             np_ok ==
@@ -791,19 +900,24 @@ np_mls_handle_message(np_mls_client* client,
           mls_delete_bytes_tuple(welcome_commit);
           mls_delete_bytes(welcome_packet);
           mls_delete_bytes(add);
-          printf("Sleeping for 1 second...\n");
-          sleep(1);
+        } else {
+            printf("Client %s already added! No welcome sent!\n", issuer_id_str);
         }
-        pthread_mutex_unlock(client->lock);
+      } else {
+          printf("[%s]Group is not null or I'm not the creator for it!\n", client->id);
       }
       break;
     }
     case NP_MLS_PACKAGE_UNKNOWN:
       break;
     default:
+      printf("Realeasing Mutex in default branch...\n");
+      pthread_mutex_unlock(client->lock);
       return true;
   }
   free(tree);
+  printf("Realeasing Mutex on th end...\n");
+  pthread_mutex_unlock(client->lock);
   return true;
 }
 

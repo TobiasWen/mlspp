@@ -211,7 +211,11 @@ np_message_intent_public_token_t* _np_token_factory_new_message_intent_token(np_
     ASSERT(np_ok == tmp,"Could not set \"max_threshold\" data %"PRIu32,tmp);
     tmp = np_set_data(ret->attributes,(struct np_data_conf){.key="msg_threshold", .type = NP_DATA_TYPE_UNSIGNED_INT}, (np_data_value){ .unsigned_integer = 0});
     ASSERT(np_ok == tmp,"Could not set \"msg_threshold\" data %"PRIu32,tmp);
-
+    if((msg_request->encryption_algorithm == MLS_ENCRYPTION ||
+       strstr(msg_request->msg_subject, "mls_") != NULL) && msg_request->mls_is_creator) {
+        tmp = np_set_data(ret->attributes,(struct np_data_conf){.key="mls_creator", .type = NP_DATA_TYPE_UNSIGNED_INT}, (np_data_value){ .unsigned_integer = 1});
+        ASSERT(np_ok == tmp,"Could not set \"mls_creator\" data %"PRIu32,tmp);
+    }
     // TODO: insert value based on msg properties / respect (sticky) reply
     np_aaatoken_set_partner_fp(ret, context->my_node_key->dhkey);
     // np_aaatoken_set_partner_fp calls _np_aaatoken_update_attributes_signature(ret);

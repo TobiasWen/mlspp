@@ -61,6 +61,7 @@ typedef struct {
   arraylist *ids;
   hashtable *pending_joins;
   arraylist *pending_subjects;
+  arraylist *authorized_users;
   hashtable *subject_authorization_state;
   pthread_mutex_t *lock;
 } np_mls_client;
@@ -112,8 +113,11 @@ np_mls_group* np_mls_get_group_from_subject_id_str(np_mls_client *client, np_con
 // extract kp from token
 mls_bytes np_ml_extract_kp(struct np_token* id);
 
-// check if token owner is group creator
+// check if everyone is group authorized
 bool np_mls_get_creator_status(struct np_token* id);
+bool np_mls_is_everyone_authorized(np_mls_client *client, char *subject, int client_count);
+bool np_mls_add_auth_userspace(np_mls_client *client, char *subject, char* issuer);
+bool np_mls_add_auth_mls(np_mls_client *client, char *subject, char* issuer);
 np_mls_client* np_mls_get_client_from_module(struct np_state_s *context);
 
 // network packets

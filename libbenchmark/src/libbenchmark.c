@@ -258,3 +258,39 @@ char* str_concat(const char *s1, const char *s2)
   strcat(result, s2);
   return result;
 }
+
+double np_mls_get_double_average(char *key, np_mls_benchmark_result *result) {
+    if(key != NULL && result != NULL) {
+        arraylist *list = hashtable_get(result->values, key);
+        if(list != NULL) {
+            double sum = 0;
+            unsigned int size = arraylist_size(list);
+            for(int i = 0; i < arraylist_size(list); i++) {
+                double *item = arraylist_get(list, i);
+                if(item != NULL) {
+                    sum+= *item;
+                }
+            }
+            return size > 0 ? sum / size : 0;
+        }
+    }
+    return -1;
+}
+
+double np_mls_get_int_average(char *key, np_mls_benchmark_result *result) {
+    if(key != NULL && result != NULL) {
+        arraylist *list = hashtable_get(result->values, key);
+        if(list != NULL) {
+            double sum = 0;
+            unsigned int size = arraylist_size(list);
+            for(int i = 0; i < arraylist_size(list); i++) {
+                int *item = arraylist_get(list, i);
+                if(item != NULL) {
+                    sum+= *item;
+                }
+            }
+            return size > 0 ? sum / size : 0;
+        }
+    }
+    return -1;
+}

@@ -8,4 +8,4 @@ set(LIBBENCHMARK_NAME "libbenchmark")
 
 add_executable(${APP_NAME} ${APP_SOURCES})
 target_include_directories(${APP_NAME} PRIVATE ${WRAPPER_INCLUDE_PATH} ${APP_INCLUDE_PATH})
-target_link_libraries(${APP_NAME} ${WRAPPER_NAME} ${NEUROPIL_NAME} ${LIBBENCHMARK_NAME})
+target_link_libraries(${APP_NAME} ${WRAPPER_NAME} ${NEUROPIL_NAME} ${LIBBENCHMARK_NAME} uuid)
