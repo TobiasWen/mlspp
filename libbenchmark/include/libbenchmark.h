@@ -41,6 +41,7 @@ typedef struct {
   pthread_mutex_t *lock;
   char *result_url_endpoint;
   bool finished;
+  bool ready;
 } np_mls_benchmark;
 
 typedef struct {

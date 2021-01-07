@@ -64,6 +64,7 @@ typedef struct {
   arraylist *authorized_users;
   hashtable *subject_authorization_state;
   pthread_mutex_t *lock;
+  bool ready_for_benchmark;
 } np_mls_client;
 
 // neuropil module functions

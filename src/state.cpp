@@ -1,4 +1,5 @@
 #include <mls/state.h>
+#include <stdio.h>
 
 namespace mls {
 
@@ -734,7 +735,7 @@ State::decrypt(const MLSCiphertext& ct)
   if (ct.group_id != _group_id) {
     throw InvalidParameterError("Ciphertext not from this group");
   }
-
+  printf("[Decrypt] Next epoch: %lu and we received epoch: %lu\n", _epoch, ct.epoch);
   if (ct.epoch != _epoch) {
     throw InvalidParameterError("Ciphertext not from this epoch");
   }

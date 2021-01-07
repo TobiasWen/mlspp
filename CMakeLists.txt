@@ -6,7 +6,7 @@ project(mlspp
 )
 
 option(CLANG_TIDY "Perform linting with clang-tidy" OFF)
-option(ADDRESS_SANITIZER "Enable address sanitizer" OFF)
+option(ADDRESS_SANITIZER "Enable address sanitizer" ON)
 
 ###
 ### Global Config

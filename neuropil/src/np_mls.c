@@ -42,7 +42,7 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
     snprintf(protocol_subject,250, "mls_%s", subject);
     np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
     mls_protocol_property->mls_connected = property;
-    mls_protocol_property->token_max_ttl = 10.0;
+    //mls_protocol_property->token_max_ttl = 10.0;
     property->mls_connected = mls_protocol_property;
 
     if (true == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
@@ -175,7 +175,7 @@ np_mls_client*
 np_mls_create_client(np_context* ac)
 {
   unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
-  np_node_fingerprint(ac, local_fingerprint);
+  np_node_fingerprint(ac, &local_fingerprint);
   char *local_fingerprint_str = calloc(1, 65);
   np_id_str(local_fingerprint_str, local_fingerprint);
   np_mls_client* new_client = calloc(1, sizeof(*new_client));
@@ -191,6 +191,7 @@ np_mls_create_client(np_context* ac)
   new_client->authorized_users = arraylist_create();
   new_client->subject_authorization_state = hashtable_create();
   new_client->lock = calloc(1, sizeof(*new_client->lock));
+  new_client->ready_for_benchmark = false;
   pthread_mutex_init(new_client->lock, NULL);
 
   // add mls_client to context
@@ -361,7 +362,8 @@ bool np_mls_authorize(np_state_t *context, char *subject) {
   np_mls_client *client = np_module(mls)->client;
   char *subject_id_str = np_mls_get_id_string(subject);
   np_mls_group *group = np_mls_get_group_from_subject_id_str(client, context, subject_id_str);
-  if(group == NULL) {
+  benchmark_userdata *userdata = np_get_userdata(context);
+  if(group == NULL && userdata->benchmark->ready) {
     // check if there already exists a pending join for this subject
     if(hashtable_get(client->pending_joins, subject_id_str) != NULL) {
       return true;
@@ -376,7 +378,6 @@ bool np_mls_authorize(np_state_t *context, char *subject) {
     mls_bytes kp = mls_pending_join_get_key_package(join);
     mls_bytes key_package = np_mls_create_packet_keypackage(context, kp);
     // send key package
-    //sleep(3);
     np_send(context, subject, key_package.data, key_package.size);
     mls_delete_bytes(kp);
     printf("[%s] Sent Keypackage on subject %s!\n", client->id, subject);
@@ -392,9 +393,9 @@ np_mls_update(np_mls_client* client, np_context* ac, const char* subject)
   np_get_id(subject_id, subject, 0);
   char* subject_id_str = calloc(1, 65);
   np_id_str(subject_id_str, subject_id);
-  pthread_mutex_lock(client->lock);
   np_mls_group* group = hashtable_get(client->groups, subject_id_str);
   if (group != NULL) {
+    pthread_mutex_lock(client->lock);
     // create update
     mls_bytes update = mls_session_update(group->local_session);
     mls_bytes update_proposals[] = { update };
@@ -404,6 +405,7 @@ np_mls_update(np_mls_client* client, np_context* ac, const char* subject)
     // send update on group channel
     mls_bytes message = np_mls_create_packet_group_operation(
       ac, MLS_GRP_OP_UPDATE, "", update, update_commit.data2);
+    pthread_mutex_unlock(client->lock);
     assert(np_ok ==
            np_mls_send(client, ac, subject, message.data, message.size));
     mls_delete_bytes(update);
@@ -412,7 +414,6 @@ np_mls_update(np_mls_client* client, np_context* ac, const char* subject)
   } else {
     printf("Received update for missing group!\n");
   }
-  pthread_mutex_unlock(client->lock);
 }
 
 void
@@ -427,9 +428,9 @@ np_mls_remove(np_mls_client *client,
   np_get_id(subject_id, subject, 0);
   char* subject_id_str = calloc(1, 65);
   np_id_str(subject_id_str, subject_id);
-  pthread_mutex_lock(client->lock);
   np_mls_group* group = hashtable_get(client->groups, subject_id_str);
   if (group != NULL) {
+    pthread_mutex_lock(client->lock);
     // create update
     mls_bytes remove = mls_session_remove(group->local_session, remove_index);
     mls_bytes remove_proposals[] = { remove };
@@ -439,13 +440,13 @@ np_mls_remove(np_mls_client *client,
     // send update on group channel
     mls_bytes message = np_mls_create_packet_group_operation(
       ac, MLS_GRP_OP_REMOVE, removed_client_id, remove, remove_commit.data2);
+    pthread_mutex_unlock(client->lock);
     assert(np_ok ==
            np_mls_send(client, ac, subject, message.data, message.size));
     mls_delete_bytes(remove);
     mls_delete_bytes_tuple(remove_commit);
     mls_delete_bytes(message);
   }
-  pthread_mutex_unlock(client->lock);
 }
 
 void np_mls_remove_self(np_mls_client *client, np_context *ac, const char *subject) {
@@ -760,6 +761,7 @@ np_mls_handle_message(np_mls_client* client,
                       np_context* ac,
                       struct np_message* message)
 {
+  printf("[%s] Received message on protocol subject\n", client->id);
   //TODO: Return at end of function after free call and not in switch (memory leak)
   //TODO: Dont convert message->subject to np_id
   np_tree_t* tree = np_tree_create();
@@ -767,7 +769,7 @@ np_mls_handle_message(np_mls_client* client,
   // Get Type
   np_tree_elem_t* source_type = np_tree_find_str(tree, NP_MLS_PACKAGE_TYPE);
   if (source_type == NULL) {
-    printf("Couldn't find type\n");
+    printf(" [%s] Couldn't find type\n", client->id);
     return true;
   }
   np_mls_packet_type type = source_type->val.value.i;
@@ -837,14 +839,11 @@ np_mls_handle_message(np_mls_client* client,
     }
     case NP_MLS_PACKAGE_KEYPACKAGE: {
       // Lock mutex
-      printf("[%s] Waiting on KP Mutex...\n", client->id);
-      pthread_mutex_lock(client->lock);
       // Extract kp from token and send welcome message
       np_tree_elem_t* source_data = np_tree_find_str(tree, NP_MLS_PACKAGE_DATA);
       if (source_data == NULL) {
         printf("Couldn't find keypackage data in received keypackage\n");
         printf("Realeasing Mutex...\n");
-        pthread_mutex_unlock(client->lock);
         return true;
       }
       mls_bytes kp = { 0 };
@@ -871,8 +870,9 @@ np_mls_handle_message(np_mls_client* client,
             break;
           }
         }
-
         if(!client_added) {
+          printf("[%s] Waiting on KP Mutex...\n", client->id);
+          pthread_mutex_lock(client->lock);
           mls_bytes add = mls_session_add(group->local_session, kp);
           mls_bytes add_proposals[] = { add };
           mls_bytes_tuple welcome_commit =
@@ -888,7 +888,8 @@ np_mls_handle_message(np_mls_client* client,
           mls_bytes add_commit = np_mls_create_packet_group_operation(
             ac, MLS_GRP_OP_ADD, issuer_id_str, add, welcome_commit.data2);
           mls_session_handle(group->local_session, welcome_commit.data2);
-          sleep(3);
+          printf("[%s] Releasing KP Mutex...\n", client->id);
+          pthread_mutex_unlock(client->lock);
           np_mls_send(client, ac, group->subject, add_commit.data, add_commit.size);
           assert(
             np_ok ==
@@ -911,13 +912,9 @@ np_mls_handle_message(np_mls_client* client,
     case NP_MLS_PACKAGE_UNKNOWN:
       break;
     default:
-      printf("Realeasing Mutex in default branch...\n");
-      pthread_mutex_unlock(client->lock);
       return true;
   }
   free(tree);
-  printf("Realeasing Mutex on th end...\n");
-  pthread_mutex_unlock(client->lock);
   return true;
 }
 
@@ -947,6 +944,7 @@ np_mls_handle_welcome(np_mls_client* client,
     new_group->isInitialized = true;
     new_group->subject = hashtable_get(client->ids_to_subjects, subject);
     hashtable_set(client->groups, subject, new_group);
+    arraylist_add(client->group_subjects, subject);
     printf("Successfully joined group!\n");
   } else {
     printf("No PendingJoin for welcome packet!\n");

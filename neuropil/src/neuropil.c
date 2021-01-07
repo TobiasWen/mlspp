@@ -192,7 +192,7 @@ np_context* np_new_context(struct np_settings * settings_in)
             .check_cb = _np_decaying_bloom_check,
             .clear_cb = _np_standard_bloom_clear,
         };
-        context->msg_part_filter = _np_decaying_bloom_create(1024, 8, 1);
+        context->msg_part_filter = _np_decaying_bloom_create(2048, 8, 1);
         context->msg_part_filter->op = decaying_op;
 
         _np_log_rotate(context, true);

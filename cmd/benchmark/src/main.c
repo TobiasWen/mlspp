@@ -4,9 +4,8 @@
 #include <memory.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <neuropil_attributes.h>
 #include <np_mls.h>
+#include <unistd.h>
 
 void run_benchmark(np_mls_benchmark *benchmark);
 
@@ -24,7 +23,7 @@ main() {
     np_mls_benchmark *benchmark =
             np_mls_create_benchmark("MyBenchmark",
                                     "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                                    3,
+                                    12,
                                     50,
                                     5,
                                     NP_MLS_BENCHMARK_MESH_TOPOLOGY,
@@ -79,12 +78,12 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         nodes[i] = np_new_context(settings);
         char *join_method = NULL;
         if (benchmark->topology == NP_MLS_BENCHMARK_MESH_TOPOLOGY) {
-            join_method = "udp4";
+            join_method = "tcp4";
         } else {
             join_method = "pas4";
         }
         // join network
-        assert(np_ok == np_listen(nodes[i], "udp4", "localhost", port));
+        assert(np_ok == np_listen(nodes[i], "tcp4", "localhost", port));
         char *wildcard = "*:";
         char *address = ":localhost:";
         char port_str[12];
@@ -108,24 +107,10 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         // set mls encryption
         struct np_mx_properties props = np_get_mx_properties(nodes[i], "mysubject");
         if (benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
-            /*if (np_data_ok == np_set_mxp_attr_bin(
-                    nodes[i], "mysubject", NP_ATTR_INTENT, NP_MLS_IS_CREATOR, &local_fingerprint,
-                    NP_FINGERPRINT_BYTES)) {
-                printf("Set creator flag for userspace!\n");
-            } else {
-                printf("Couldn't set creator flag for userspace!\n");
-            }*/
-
-            props.intent_ttl = 10.0;
+            //props.intent_ttl = 10.0;
             props.encryption_algorithm = MLS_ENCRYPTION;
-            bool is_creator = benchmark->has_sender && i == 0;
-            unsigned char creator_char = (unsigned char) (is_creator ? '1' : '0');
-            props.mls_is_creator = is_creator;
-
-
-
-            printf("[%s] Added creator flag to token for subject 'mysubject'.\n", local_fingerprint_str);
-
+            props.message_ttl = 5;
+            props.mls_is_creator = benchmark->has_sender && i == 0;
         }
         np_set_mx_properties(nodes[i], "mysubject", props);
         assert(np_ok == np_add_receive_cb(nodes[i], "mysubject", receive));
@@ -137,6 +122,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
     // wait 60s until everyone is joined into the group and ready for benchmark
     // [ ] measure start timestamp
     // [ ] measure end timestamp after every message is sent or received
+    bool isinitialized = false;
     while (!benchmark->finished) {
         // run event loop
         uint16_t tmp;
@@ -145,15 +131,44 @@ void run_benchmark(np_mls_benchmark *benchmark) {
           printf("Error in np_run on ctrl node\n");
         }*/
         // nodes
+        int is_ready_count = 0;
+        int is_initialized_count = 0;
         for (int i = 0; i < benchmark->num_clients_per_node; i++) {
-            if (i == 0) {
-                sleep(3);
+            np_mls_client *client = np_mls_get_client_from_module(nodes[i]);
+            if(np_mls_is_everyone_authorized(client, "mysubject", benchmark->num_clients_per_node)){
+                is_ready_count++;
+            }
+            for(int l = 0; l < arraylist_size(client->group_subjects); l++) {
+                int groupcount = 0;
+                char *subject = arraylist_get(client->group_subjects, l);
+                if(subject) {
+                    np_mls_group *group = hashtable_get(client->groups, subject);
+                    if(group && group->isInitialized) {
+                        groupcount++;
+                    }
+                }
+                if(groupcount == arraylist_size(client->group_subjects)) {
+                    is_initialized_count++;
+                }
+            }
+            /*if (i == 0) {
                 np_send(nodes[0], "mysubject", "Hallo Welt!", 12);
                 printf("Sent!\n");
-            }
+            }*/
             if (np_ok != np_run(nodes[i], 0)) {
                 printf("Error in np_run on node nr:%d\n", i);
             }
+        }
+        if(is_ready_count == benchmark->num_clients_per_node && !benchmark->ready) {
+            printf("Benchmark is ready to go! Fire!\n");
+            /*for(int i = 0; i < benchmark->num_clients_per_node; i++){
+                np_send(nodes[i], "mls_mysubject", "Test", 5);
+            }*/
+            benchmark->ready = true;
+        } else if(benchmark->ready && is_initialized_count == benchmark->num_clients_per_node) {
+            sleep(1);
+            printf("Send message...\n");
+            np_send(nodes[0], "mysubject", "Hallo Welt!", 12);
         }
     }
     printf("Benchmark \"%s\"(%s) finished!\n", benchmark->name, benchmark->id);

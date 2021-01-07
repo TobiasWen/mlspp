@@ -188,8 +188,8 @@ void _np_alias_cleanup_msgpart_cache(np_state_t* context)
         log_debug_msg(LOG_DEBUG, "MSG_PART_TABLE duplicate check has currently space for: %d items (s: %d / p: %d)", 
                           context->msg_part_filter->_free_items, context->msg_part_filter->_size, context->msg_part_filter->_p);
 
-        size_t                  _size_adjustment  = 1024;
-        if (_size_modifier > 0) _size_adjustment  = _size_modifier*1024;
+        size_t                  _size_adjustment  = 2048;
+        if (_size_modifier > 0) _size_adjustment  = _size_modifier*2048;
         if (context->msg_part_filter->_size != _size_adjustment)
         {
             free(context->msg_part_filter->_bitset);
@@ -844,7 +844,11 @@ void __np_handle_usr_msg(np_util_statemachine_t* statemachine, const np_util_eve
 {
     np_ctx_memory(statemachine->_user_data);
     log_trace_msg(LOG_TRACE, "start: bool __np_handle_usr_msg(...) {");
-    
+    if (__is_forward_message(statemachine, event))
+    {
+        np_ref_obj(np_message_t, event.user_data, ref_message_in_send_system);
+        __np_handle_np_forward(statemachine, event);
+    }
     __np_handle(statemachine, event);
 } 
 
