@@ -56,18 +56,6 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
         mls_protocol_property->mls_is_creator = true;
     }
 
-    /*unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
-    np_node_fingerprint(context, local_fingerprint);
-    char *local_fingerprint_str = calloc(1, 65);
-    np_id_str(local_fingerprint_str, local_fingerprint);
-    printf("[%s] Added creator flag to token for subject 'mls_mysubject'.\n", local_fingerprint_str);
-    unsigned char creator_char = (unsigned char) (mls_protocol_property->mls_is_creator ? '1' : '0');
-    if(np_data_ok == np_set_mxp_attr_bin(
-            context, protocol_subject, NP_ATTR_INTENT, "test123", local_fingerprint, NP_FINGERPRINT_BYTES)) {
-        printf("Set creator flag for protocol_subject!\n");
-    } else {
-        printf("Couldn't set creator flag for protocol_subject!\n");
-    }*/
     assert(np_ok == np_add_receive_cb(context, protocol_subject, np_mls_receive));
     printf("Created mls protocol subject %s on client %s!\n", protocol_subject, mls_client->id);
 }
@@ -111,11 +99,11 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
         printf("np_in_cb_wrapper decrypting\n");
         benchmark_userdata *userdata = np_get_userdata(context);
         np_mls_clock *my_clock = np_mls_clock_start();
+        np_mls_add_int_to_list_result(NP_MLS_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
         ret = np_mls_decrypt_payload(msg_in, group->local_session);
         np_mls_clock_stop(my_clock);
         np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
         np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
-        np_mls_add_int_to_list_result(NP_MLS_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
         np_mls_clock_destroy(my_clock);
       }
       free(subject_id_str);

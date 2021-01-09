@@ -1594,9 +1594,11 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
             benchmark_userdata *userdata = np_get_userdata(context);
             char *protocol_subject;
             if(real_prop->encryption_algorithm == MLS_ENCRYPTION) {
+                np_mls_group *group = hashtable_get(mls_client->groups, real_prop->msg_subject);
                 np_mls_add_auth_userspace(mls_client, real_prop->msg_subject, intent_token->issuer);
                 protocol_subject = real_prop->mls_connected->msg_subject;
             } else if(strstr(real_prop->msg_subject, "mls_") != NULL) {
+                np_mls_group *group = hashtable_get(mls_client->groups, real_prop->mls_connected->msg_subject);
                 np_mls_add_auth_mls(mls_client, real_prop->mls_connected->msg_subject, intent_token->issuer);
                 protocol_subject = real_prop->msg_subject;
             }

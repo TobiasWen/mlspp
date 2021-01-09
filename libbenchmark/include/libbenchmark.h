@@ -5,6 +5,17 @@
 #include "arraylist.h"
 #include "hashtable.h"
 
+// General Benchmarking Keys
+static const char *NP_BENCHMARK_TIME_WALL = "NP_BENCHMARK_TIME_WALL";
+static const char *NP_BENCHMARK_TIME_CPU = "NP_BENCHMARK_TIME_CPU";
+// Json Web Encryption (JWE) Benchmark Keys
+static const char *NP_JWE_ENCRYPTION_TIME_WALL = "NP_JWE_ENCRYPTION_TIME_WALL";
+static const char *NP_JWE_ENCRYPTION_TIME_CPU = "NP_JWE_ENCRYPTION_TIME_CPU";
+static const char *NP_JWE_DECRYPTION_TIME_WALL = "NP_JWE_DECRYPTION_TIME_WALL";
+static const char *NP_JWE_DECRYPTION_TIME_CPU = "NP_JWE_DECRYPTION_TIME_CPU";
+static const char *NP_JWE_MESSAGE_OUT_BYTE_SIZE = "NP_JWE_MESSAGE_OUT_BYTE_SIZE";
+static const char *NP_JWE_MESSAGE_IN_BYTE_SIZE = "NP_JWE_MESSAGE_IN_BYTE_SIZE";
+// Messaging Layer Security (MLS) Benchmark Keys
 static const char *NP_MLS_ENCRYPTION_TIME_WALL = "NP_MLS_ENCRYPTION_TIME_WALL";
 static const char *NP_MLS_ENCRYPTION_TIME_CPU = "NP_MLS_ENCRYPTION_TIME_CPU";
 static const char *NP_MLS_DECRYPTION_TIME_WALL = "NP_MLS_DECRYPTION_TIME_WALL";
@@ -39,9 +50,9 @@ typedef struct {
   bool has_sender;
   arraylist *results;
   pthread_mutex_t *lock;
-  char *result_url_endpoint;
   bool finished;
   bool ready;
+  bool isRunning;
 } np_mls_benchmark;
 
 typedef struct {
@@ -78,8 +89,7 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
                                           int message_send_num,
                                           np_mls_benchmark_topology topology,
                                           np_mls_benchmark_algorithm benchmark_algortihm,
-                                          bool has_sender,
-                                          char *result_url_endpoint);
+                                          bool has_sender);
 
 bool np_mls_benchmark_start(np_mls_benchmark *benchmark,
                             np_mls_benchmark_run benchmark_run_cb);

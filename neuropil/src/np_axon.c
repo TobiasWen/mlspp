@@ -137,11 +137,13 @@ bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event)
             np_tree_replace_str(message->header, _NP_MSG_HEADER_TO, np_treeval_new_dhkey(_computed_to));
 
             // encrypt the relevant message part itself
-            np_mls_benchmark *benchmark = np_get_userdata(context);
+            benchmark_userdata *userdata = np_get_userdata(context);
             np_mls_clock *my_clock = np_mls_clock_start();
             _np_message_encrypt_payload(message, tmp_token_list);
             np_mls_clock_stop(my_clock);
-            printf("Neuropil Encryption took %f.9s and has a size of %d\n", my_clock->cpu_time_used, message->body->byte_size);
+            np_mls_add_double_to_list_result(NP_JWE_ENCRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
+            np_mls_add_double_to_list_result(NP_JWE_ENCRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
+            np_mls_add_int_to_list_result(NP_JWE_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
             if (FLAG_CMP(my_property->ack_mode, ACK_DESTINATION))
             {
                 np_dhkey_t redeliver_dhkey = _np_msgproperty_dhkey(OUTBOUND, my_property->msg_subject);

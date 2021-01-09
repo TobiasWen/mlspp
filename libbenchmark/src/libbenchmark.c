@@ -13,8 +13,7 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
                                           int message_send_num,
                                           np_mls_benchmark_topology topology,
                                           np_mls_benchmark_algorithm benchmark_algorithm,
-                                          bool has_sender,
-                                          char *result_url_endpoint) {
+                                          bool has_sender) {
   if(name != NULL && id != NULL) {
     np_mls_benchmark *benchmark = calloc(1, sizeof(*benchmark));
     benchmark->id = calloc(1, strlen(id) + sizeof(*benchmark->id));
@@ -30,7 +29,6 @@ np_mls_benchmark* np_mls_create_benchmark(char *name,
     benchmark->lock = calloc(1, sizeof(*benchmark->lock));
     pthread_mutex_init(benchmark->lock, NULL);
     benchmark->has_sender = has_sender;
-    benchmark->result_url_endpoint = result_url_endpoint;
     benchmark->finished = false;
     return benchmark;
   }
