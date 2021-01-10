@@ -32,9 +32,9 @@ main() {
     np_mls_benchmark *benchmark =
             np_mls_create_benchmark("MyBenchmark",
                                     "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                                    9,
-                                    500000,
-                                    5,
+                                    4,
+                                    50,
+                                    50,
                                     NP_MLS_BENCHMARK_MESH_TOPOLOGY,
                                     NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
                                     true);
@@ -111,6 +111,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         benchmark_userdata *userdata = calloc(1, sizeof(benchmark_userdata)); //TODO FREE
         userdata->benchmark = benchmark;
         userdata->result = np_mls_create_benchmark_results(local_fingerprint_str, benchmark->has_sender && i == 0);
+        np_mls_add_result_to_benchmark(benchmark, userdata->result);
         np_set_userdata(nodes[i], userdata);
         // set mls encryption
         struct np_mx_properties props = np_get_mx_properties(nodes[i], "mysubject");
@@ -119,6 +120,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
             props.encryption_algorithm = MLS_ENCRYPTION;
             props.message_ttl = 5;
             props.mls_is_creator = benchmark->has_sender && i == 0;
+            props.ackmode = NP_MX_ACK_DESTINATION;
         }
         np_set_mx_properties(nodes[i], "mysubject", props);
         assert(np_ok == np_add_receive_cb(nodes[i], "mysubject", receive));
@@ -178,7 +180,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
             pthread_t input_thread;
             pthread_create(&input_thread, NULL, send_thread, &args);
         } else if(benchmark->finished) {
-            printf("Finished Benchmark Successfull!\n");
+            np_mls_benchmark_print_results(benchmark);
             break;
         }
     }
@@ -188,21 +190,18 @@ void run_benchmark(np_mls_benchmark *benchmark) {
 void send_thread(struct benchmark_thread_args *args) {
     // generate bytes
     unsigned char *bytes = gen_rdm_bytestream(args->benchmark->packet_byte_size);
+    np_context *ac = args->nodes[0];
+    benchmark_userdata *userdata = np_get_userdata(ac);
+    userdata->result->duration_clock = np_mls_clock_start();
     printf("Benchmarking...\n");
     // TODO:
-    // Add total bytes sent/receivedr
+    // Add total bytes sent/received
     // Sender should start Benchmark when sending first packet and stop when last packet was sent
     // Receiver should start Benchmark on receiving the first message and stop when received the last message
-    np_mls_clock *my_clock = np_mls_clock_start();
     // benchmark routine between here
-    for(int i = 0; i < args->benchmark->message_send_num; i++) {
+    for(int i = 0; i < args->benchmark->message_send_num + 20; i++) {
         np_send(args->nodes[0], "mysubject", bytes, args->benchmark->packet_byte_size);
     }
-    // ------------------------------
-    np_mls_clock_stop(my_clock);
-    np_mls_benchmark_result *result = np_mls_create_benchmark_results(generateUUID(), false);
-    np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_WALL, my_clock->wall_time_used, "s", result);
-    np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_CPU, my_clock->cpu_time_used, "s", result);
 }
 
 unsigned char *gen_rdm_bytestream(size_t num_bytes) {
@@ -233,11 +232,14 @@ authorize(np_context *ac, struct np_token *id) {
 
 bool
 receive(np_context *ac, struct np_message *message) {
-    unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
-    np_node_fingerprint(ac, local_fingerprint);
-    char *local_fingerprint_str = calloc(1, 65);
-    np_id_str(local_fingerprint_str, local_fingerprint);
-    printf("[%s] received: %.*s\n", local_fingerprint_str, (int) message->data_length, message->data);
-    free(local_fingerprint_str);
+    benchmark_userdata *userdata = np_get_userdata(ac);
+    if(!userdata->benchmark->finished) {
+        unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
+        np_node_fingerprint(ac, local_fingerprint);
+        char *local_fingerprint_str = calloc(1, 65);
+        np_id_str(local_fingerprint_str, local_fingerprint);
+        printf("[%s] received: %.*s\n", local_fingerprint_str, (int) message->data_length, message->data);
+        free(local_fingerprint_str);
+    }
     return true;
 }

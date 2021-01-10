@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <uuid/uuid.h>
+#include <stdio.h>
+#include <unistd.h>
 
 // init
 np_mls_benchmark* np_mls_create_benchmark(char *name,
@@ -200,6 +202,35 @@ void* np_mls_get_value_from_result(char *key, np_mls_benchmark_result *result) {
   return NULL;
 }
 
+void np_mls_increase_message_count(np_mls_benchmark *benchmark, np_mls_benchmark_result *result) {
+    if(benchmark != NULL && result != NULL && !benchmark->finished && result->message_count < benchmark->message_send_num) {
+        pthread_mutex_lock(result->lock);
+        result->message_count++;
+        if(result->message_count >= benchmark->message_send_num) {
+            result->finished = true;
+            np_mls_clock_stop(result->duration_clock);
+            int ready_results = 0;
+            for(int i = 0; i < arraylist_size(benchmark->results); i++) {
+                np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
+                if(cur_result != NULL && cur_result->finished) {
+                    ready_results++;
+                }
+            }
+            if(ready_results == benchmark->num_clients_per_node) {
+                pthread_mutex_lock(benchmark->lock);
+                benchmark->finished = true;
+                pthread_mutex_unlock(benchmark->lock);
+                np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_WALL, result->duration_clock->wall_time_used, "s", result);
+                np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_CPU, result->duration_clock->cpu_time_used, "s", result);
+            }
+        } else if(result->message_count == 1) {
+            result->duration_clock = np_mls_clock_start();
+        }
+        printf("[%s] Result messagecount: %d\n", result->client_id, result->message_count);
+        pthread_mutex_unlock(result->lock);
+    }
+}
+
 // free
 bool np_mls_free_list_items_from_result(char *key, np_mls_benchmark_result *result) {
   if(key != NULL && result != NULL) {
@@ -239,6 +270,67 @@ bool np_mls_clock_destroy(np_mls_clock *clock) {
   }
   return false;
 }
+
+// printing
+void np_mls_benchmark_print_results(np_mls_benchmark *benchmark) {
+    // calculate results
+    // 1.) Get Benchmark Algorithm
+    char *benchmark_algorithm = NULL;
+    switch (benchmark->benchmark_algorithm) {
+        case NP_MLS_JSON_ENCRYPTION:
+            benchmark_algorithm = "JWE_128_CHACHA20POLY1305_SHA256_Ed25519";
+            break;
+        case NP_MLS_ENCRYPTION_X25519_AES128GCM_SHA256_Ed25519:
+            benchmark_algorithm = "MLS10_128_DHKEMX25519_AES128GCM_SHA256_Ed25519";
+            break;
+        case NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519:
+            benchmark_algorithm = "MLS10_128_DHKEMX25519_CHACHA20POLY1305_SHA256_Ed25519";
+            break;
+        case NP_MLS_ENCRYPTION_X448_CHACHA20POLY1305_SHA512_Ed448:
+            benchmark_algorithm = "MLS10_256_DHKEMX448_CHACHA20POLY1305_SHA512_Ed44";
+            break;
+    }
+    // 2.) Benchmark duration
+    // get sender benchmark duration result
+    np_mls_benchmark_result *sender_result;
+    int sender_result_index = -1;
+    for(int i = 0; i < arraylist_size(benchmark->results); i++) {
+        np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
+        if(cur_result != NULL && cur_result->is_sender) {
+            sender_result = cur_result;
+            sender_result_index = i;
+            np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_WALL, cur_result->duration_clock->wall_time_used, "s", cur_result);
+            np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_CPU, cur_result->duration_clock->cpu_time_used, "s", cur_result);
+            break;
+        }
+    }
+    // get reeiver benchmark duration result
+
+    // print results
+    printf("-------------------------------------------------------------------------------\n");
+    printf("Benchmark Results for %s:\n", benchmark->id);
+    printf("-------------------------------------------------------------------------------\n");
+    printf("    General Information \n");
+    printf("-------------------------------------------------------------------------------\n");
+    printf("                  Number of clients: %d\n", benchmark->num_clients_per_node);
+    printf("            Number of messages sent: %d\n", benchmark->message_send_num);
+    printf("                       Message size: %d bytes\n", benchmark->packet_byte_size);
+    printf("               Encryption algorithm: %s\n", benchmark_algorithm);
+    printf("               Encryption algorithm: %s\n", benchmark_algorithm);
+    printf("             Communication Topology: %s\n", benchmark->topology == NP_MLS_BENCHMARK_STAR_TOPOLOGY ? "Star Topology" : "Mesh Topology");
+    printf("-------------------------------------------------------------------------------\n");
+    printf("                Results \n");
+    printf("-------------------------------------------------------------------------------\n");
+    printf("   Sender Benchmark Duration (Wall): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_WALL, sender_result) : -1.0);
+    printf("    Sender Benchmark Duration (CPU): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_CPU, sender_result) : -1.0);
+    printf("Average Receiver Benchmark Duration: %s\n", benchmark_algorithm);
+    printf("             Averge Encryption Time: %s\n", benchmark_algorithm);
+    printf("             Averge Decryption Time: %s\n", benchmark_algorithm);
+    printf("             Message body byte size: %s\n", benchmark_algorithm);
+    //printf("       CPU time spent: %.9fs\n", *np_mls_get_double_value_from_result("TestKey2", result));
+    printf("-------------------------------------------------------------------------------\n");
+}
+
 
 // utility
 char* generateUUID() {

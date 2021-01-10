@@ -29,14 +29,10 @@ typedef enum {
 } np_mls_benchmark_topology;
 
 typedef enum {
-  NP_MLS_NO_ENCRYPTION = 0x000,
-  NP_MLS_JSON_ENCRYPTION = 0x001,
-  NP_MLS_ENCRYPTION_X25519_AES128GCM_SHA256_Ed25519 = 0x002,
-  NP_MLS_ENCRYPTION_P256_AES128GCM_SHA256_P256 = 0x002,
-  NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519 = 0x003,
-  NP_MLS_ENCRYPTION_X448_AES256GCM_SHA512_Ed448 = 0x004,
-  NP_MLS_ENCRYPTION_P521_AES256GCM_SHA512_P521= 0x005,
-  NP_MLS_ENCRYPTION_X448_CHACHA20POLY1305_SHA512_Ed448 = 0x006,
+  NP_MLS_JSON_ENCRYPTION = 0x000,
+  NP_MLS_ENCRYPTION_X25519_AES128GCM_SHA256_Ed25519 = 0x001,
+  NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519 = 0x002,
+  NP_MLS_ENCRYPTION_X448_CHACHA20POLY1305_SHA512_Ed448 = 0x003,
 } np_mls_benchmark_algorithm;
 
 typedef struct {
@@ -56,15 +52,6 @@ typedef struct {
 } np_mls_benchmark;
 
 typedef struct {
-  char *client_id;
-  hashtable *values;
-  hashtable *units;
-  arraylist *keys;
-  bool is_sender;
-  pthread_mutex_t *lock;
-} np_mls_benchmark_result;
-
-typedef struct {
   clock_t cpu_time_start;
   clock_t cpu_time_end;
   double cpu_time_used;
@@ -72,6 +59,18 @@ typedef struct {
   struct timespec wall_time_stop;
   double wall_time_used;
 } np_mls_clock;
+
+typedef struct {
+    char *client_id;
+    hashtable *values;
+    hashtable *units;
+    arraylist *keys;
+    bool is_sender;
+    np_mls_clock *duration_clock;
+    int message_count;
+    pthread_mutex_t *lock;
+    bool finished;
+} np_mls_benchmark_result;
 
 typedef struct {
   np_mls_benchmark *benchmark;
@@ -112,12 +111,16 @@ int* np_mls_get_int_value_from_result(char *key, np_mls_benchmark_result *result
 double* np_mls_get_double_value_from_result(char *key, np_mls_benchmark_result *result);
 arraylist* np_mls_get_list_from_result(char *key, np_mls_benchmark_result *result);
 void* np_mls_get_value_from_result(char *key, np_mls_benchmark_result *result);
+// message count
+void np_mls_increase_message_count(np_mls_benchmark *benchmark, np_mls_benchmark_result *result);
 // free
 bool np_mls_free_list_items_from_result(char *key, np_mls_benchmark_result *result);
 // measuring time
 np_mls_clock* np_mls_clock_start();
 void np_mls_clock_stop(np_mls_clock *my_clock);
 bool np_mls_clock_destroy(np_mls_clock *clock);
+// printing
+void np_mls_benchmark_print_results(np_mls_benchmark *benchmark);
 // utility
 char* generateUUID();
 char* str_concat(const char *s1, const char *s2);

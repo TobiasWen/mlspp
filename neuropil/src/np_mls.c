@@ -105,6 +105,7 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
         np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
         np_mls_add_double_to_list_result(NP_MLS_DECRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
         np_mls_clock_destroy(my_clock);
+        np_mls_increase_message_count(userdata->benchmark, userdata->result);
       }
       free(subject_id_str);
     }
@@ -147,6 +148,7 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
       np_mls_add_int_to_list_result(NP_MLS_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
       np_mls_clock_destroy(my_clock);
       np_tree_elem_t* enc_msg_part = np_tree_find_str(message->body, NP_ENCRYPTED);
+      np_mls_increase_message_count(userdata->benchmark, userdata->result);
       if (NULL == enc_msg_part)
       {
         printf("couldn't find encrypted msg part in encryption method\n");

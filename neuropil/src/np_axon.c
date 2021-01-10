@@ -320,7 +320,6 @@ bool _np_out_default(np_state_t* context, np_util_event_t event)
         }
         pll_next(part_iter);
     }
-
     // 4 cleanup
     sll_free(np_dhkey_t, tmp);
 
