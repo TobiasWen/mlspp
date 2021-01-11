@@ -70,6 +70,8 @@ typedef struct {
     int message_count;
     pthread_mutex_t *lock;
     bool finished;
+    bool authorized;
+    hashtable *authorized_clients;
 } np_mls_benchmark_result;
 
 typedef struct {

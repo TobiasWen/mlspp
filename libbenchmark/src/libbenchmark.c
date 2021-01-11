@@ -56,6 +56,8 @@ np_mls_benchmark_result* np_mls_create_benchmark_results(char *client_id, bool i
     benchmark_result->units = hashtable_create();
     benchmark_result->values = hashtable_create();
     benchmark_result->lock = calloc(1, sizeof(*benchmark_result->lock));
+    benchmark_result->authorized = false;
+    benchmark_result->authorized_clients = hashtable_create();
     pthread_mutex_init(benchmark_result->lock, NULL);
     return benchmark_result;
   }
@@ -96,6 +98,7 @@ bool np_mls_destroy_benchmark_result(np_mls_benchmark_result *result) {
     arraylist_destroy(result->keys);
     hashtable_destroy(result->units);
     hashtable_destroy(result->values);
+    hashtable_destroy(result->authorized_clients);
     pthread_mutex_unlock(result->lock);
     pthread_mutex_destroy(result->lock);
     return true;
@@ -158,13 +161,15 @@ bool np_mls_add_value_to_list_result(char *key, void *value, size_t value_size, 
     pthread_mutex_lock(result->lock);
     if(result->values != NULL) {
       arraylist *values = hashtable_get(result->values, key);
-      if(values != NULL) {
-        void *ht_value = calloc(1, value_size);
-        memcpy(ht_value, value, value_size);
-        arraylist_add(values, ht_value);
-        pthread_mutex_unlock(result->lock);
-        return true;
+      if(values == NULL) {
+          values = arraylist_create();
+          hashtable_set(result->values, key, values);
       }
+      void *ht_value = calloc(1, value_size);
+      memcpy(ht_value, value, value_size);
+      arraylist_add(values, ht_value);
+      pthread_mutex_unlock(result->lock);
+      return true;
     }
     pthread_mutex_unlock(result->lock);
   }
@@ -273,6 +278,25 @@ bool np_mls_clock_destroy(np_mls_clock *clock) {
 
 // printing
 void np_mls_benchmark_print_results(np_mls_benchmark *benchmark) {
+    // 0.) Strings
+    char *enc_time_wall, *enc_time_cpu, *dec_time_wall, *dec_time_cpu, *msg_in_size, *msg_out_size;
+    if(benchmark->benchmark_algorithm == NP_MLS_JSON_ENCRYPTION) {
+        enc_time_wall = NP_JWE_ENCRYPTION_TIME_WALL;
+        enc_time_cpu = NP_JWE_ENCRYPTION_TIME_CPU;
+        dec_time_wall = NP_JWE_DECRYPTION_TIME_WALL;
+        dec_time_cpu = NP_JWE_DECRYPTION_TIME_CPU;
+        msg_in_size = NP_JWE_MESSAGE_IN_BYTE_SIZE;
+        msg_out_size = NP_JWE_MESSAGE_OUT_BYTE_SIZE;
+    } else {
+        enc_time_wall = NP_MLS_ENCRYPTION_TIME_WALL;
+        enc_time_cpu = NP_MLS_ENCRYPTION_TIME_CPU;
+        dec_time_wall = NP_MLS_DECRYPTION_TIME_WALL;
+        dec_time_cpu = NP_MLS_DECRYPTION_TIME_CPU;
+        msg_in_size = NP_MLS_MESSAGE_IN_BYTE_SIZE;
+        msg_out_size = NP_MLS_MESSAGE_OUT_BYTE_SIZE;
+    }
+
+
     // calculate results
     // 1.) Get Benchmark Algorithm
     char *benchmark_algorithm = NULL;
@@ -304,30 +328,54 @@ void np_mls_benchmark_print_results(np_mls_benchmark *benchmark) {
             break;
         }
     }
-    // get reeiver benchmark duration result
-
+    // get receiver benchmark duration result
+    double sender_duration_wall = -1, sender_duration_cpu = -1, sender_duration_wall_sum = 0, sender_duration_cpu_sum = 0;
+    for(int i = 0; i < arraylist_size(benchmark->results); i++) {
+        np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
+        if(cur_result != NULL && !cur_result->is_sender) {
+            sender_duration_wall_sum += cur_result->duration_clock->wall_time_used;
+            sender_duration_cpu_sum += cur_result->duration_clock->cpu_time_used;
+        }
+    }
+    sender_duration_wall = sender_duration_wall_sum / (benchmark->num_clients_per_node - 1);
+    sender_duration_cpu = sender_duration_cpu_sum / (benchmark->num_clients_per_node - 1);
+    // 3.) Average Encryption Time
+    double avg_enc_time_wall = np_mls_get_double_average(enc_time_wall, sender_result);
+    double avg_enc_time_cpu = np_mls_get_double_average(enc_time_cpu, sender_result);
+    // 3.) Average Decryption Time
+    double avg_dec_time_wall = -1, avg_dec_time_cpu = -1, avg_dec_time_wall_sum = 0, avg_dec_time_cpu_sum = 0;
+    for(int i = 0; i < arraylist_size(benchmark->results); i++) {
+        np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
+        if(cur_result != NULL && !cur_result->is_sender) {
+            avg_dec_time_wall_sum += np_mls_get_double_average(dec_time_wall, cur_result);
+            avg_dec_time_cpu_sum += np_mls_get_double_average(dec_time_wall, cur_result);
+        }
+    }
+    avg_dec_time_wall = avg_dec_time_wall_sum / (benchmark->num_clients_per_node -1);
+    avg_dec_time_cpu = avg_dec_time_cpu_sum / (benchmark->num_clients_per_node -1);
     // print results
     printf("-------------------------------------------------------------------------------\n");
     printf("Benchmark Results for %s:\n", benchmark->id);
     printf("-------------------------------------------------------------------------------\n");
     printf("    General Information \n");
     printf("-------------------------------------------------------------------------------\n");
-    printf("                  Number of clients: %d\n", benchmark->num_clients_per_node);
-    printf("            Number of messages sent: %d\n", benchmark->message_send_num);
-    printf("                       Message size: %d bytes\n", benchmark->packet_byte_size);
-    printf("               Encryption algorithm: %s\n", benchmark_algorithm);
-    printf("               Encryption algorithm: %s\n", benchmark_algorithm);
-    printf("             Communication Topology: %s\n", benchmark->topology == NP_MLS_BENCHMARK_STAR_TOPOLOGY ? "Star Topology" : "Mesh Topology");
+    printf("                         Number of clients: %d\n", benchmark->num_clients_per_node);
+    printf("                   Number of messages sent: %d\n", benchmark->message_send_num);
+    printf("                              Message size: %d bytes\n", benchmark->packet_byte_size);
+    printf("                      Encryption algorithm: %s\n", benchmark_algorithm);
+    printf("                    Communication Topology: %s\n", benchmark->topology == NP_MLS_BENCHMARK_STAR_TOPOLOGY ? "Star Topology" : "Mesh Topology");
     printf("-------------------------------------------------------------------------------\n");
     printf("                Results \n");
     printf("-------------------------------------------------------------------------------\n");
-    printf("   Sender Benchmark Duration (Wall): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_WALL, sender_result) : -1.0);
-    printf("    Sender Benchmark Duration (CPU): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_CPU, sender_result) : -1.0);
-    printf("Average Receiver Benchmark Duration: %s\n", benchmark_algorithm);
-    printf("             Averge Encryption Time: %s\n", benchmark_algorithm);
-    printf("             Averge Decryption Time: %s\n", benchmark_algorithm);
-    printf("             Message body byte size: %s\n", benchmark_algorithm);
-    //printf("       CPU time spent: %.9fs\n", *np_mls_get_double_value_from_result("TestKey2", result));
+    printf("          Sender Benchmark Duration (Wall): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_WALL, sender_result) : -1.0);
+    printf("           Sender Benchmark Duration (CPU): %.9fs\n", sender_result != NULL ? *np_mls_get_double_value_from_result(NP_BENCHMARK_TIME_CPU, sender_result) : -1.0);
+    printf("Average Receiver Benchmark Duration (Wall): %.9fs\n", sender_duration_wall);
+    printf(" Average Receiver Benchmark Duration (CPU): %.9fs\n", sender_duration_cpu);
+    printf("            Average Encryption Time (Wall): %.9fs\n", avg_enc_time_wall);
+    printf("             Average Encryption Time (CPU): %.9fs\n", avg_enc_time_cpu);
+    printf("            Average Decryption Time (Wall): %.9fs\n", avg_dec_time_wall);
+    printf("             Average Decryption Time (Cpu): %.9fs\n", avg_dec_time_cpu);
+    printf("                    Encrypted Message size: %f bytes\n", np_mls_get_int_average(msg_out_size, sender_result));
     printf("-------------------------------------------------------------------------------\n");
 }
 

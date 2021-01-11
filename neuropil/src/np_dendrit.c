@@ -231,13 +231,19 @@ bool _np_in_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
     else
     {
         log_msg(LOG_INFO, "decrypting message(%s/%s) from sender %s", msg_prop->msg_subject, msg_in->uuid, sender_token->issuer);
-        benchmark_userdata *userdata = np_get_userdata(context);
-        np_mls_clock *my_clock = np_mls_clock_start();
-        np_mls_add_int_to_list_result(NP_JWE_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
-        ret = _np_message_decrypt_payload(msg_in, sender_token);
-        np_mls_clock_stop(my_clock);
-        np_mls_add_double_to_list_result(NP_JWE_DECRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
-        np_mls_add_double_to_list_result(NP_JWE_DECRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
+        if(strstr(msg_prop->msg_subject, "mysubject") != NULL) {
+            benchmark_userdata *userdata = np_get_userdata(context);
+            np_mls_clock *my_clock = np_mls_clock_start();
+            np_mls_add_int_to_list_result(NP_JWE_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
+            ret = _np_message_decrypt_payload(msg_in, sender_token);
+            np_mls_clock_stop(my_clock);
+            np_mls_add_double_to_list_result(NP_JWE_DECRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
+            np_mls_add_double_to_list_result(NP_JWE_DECRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
+            np_mls_clock_destroy(my_clock);
+            np_mls_increase_message_count(userdata->benchmark, userdata->result);
+        } else {
+            ret = _np_message_decrypt_payload(msg_in, sender_token);
+        }
         np_unref_obj(np_aaatoken_t, sender_token,"_np_intent_get_sender_token"); // _np_aaatoken_get_sender_token
     }
 

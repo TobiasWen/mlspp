@@ -32,32 +32,12 @@ main() {
     np_mls_benchmark *benchmark =
             np_mls_create_benchmark("MyBenchmark",
                                     "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                                    4,
+                                    5,
                                     50,
-                                    50,
+                                    10,
                                     NP_MLS_BENCHMARK_MESH_TOPOLOGY,
                                     NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
                                     true);
-
-    /*np_mls_clock* my_clock = np_mls_clock_start();
-    for (int i = 0; i < 2100000000; i++) {
-      int a = 0;
-      a += i;
-      a *= a;
-    }
-    np_mls_clock_stop(my_clock);
-    printf("My UUID: %s\n", generateUUID());
-    np_mls_benchmark_result *result = np_mls_create_benchmark_results("f3a6dd78-919d-486b-84c8-9dcd87ad5c76", true);
-    np_mls_add_double_value_to_result("TestKey1", my_clock->wall_time_used, "s", result);
-    np_mls_add_double_value_to_result("TestKey2", my_clock->cpu_time_used, "s", result);
-    printf("--------------------------------------\n");
-    printf("Benchmark Results:\n");
-    printf("--------------------------------------\n");
-    printf("Wall clock time spent: %.9fs\n", *np_mls_get_double_value_from_result("TestKey1", result));
-    printf("       CPU time spent: %.9fs\n", *np_mls_get_double_value_from_result("TestKey2", result));
-    printf("--------------------------------------\n");
-    np_mls_clock_destroy(my_clock);
-    np_mls_destroy_benchmark(benchmark);*/
     run_benchmark(benchmark);
     return 0;
 }
@@ -117,10 +97,12 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         struct np_mx_properties props = np_get_mx_properties(nodes[i], "mysubject");
         if (benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
             //props.intent_ttl = 10.0;
-            props.encryption_algorithm = MLS_ENCRYPTION;
+            props.encryption_algorithm =
+                    benchmark->benchmark_algorithm == NP_MLS_JSON_ENCRYPTION ? NEUROPIL_ENCRYPTION : MLS_ENCRYPTION;
             props.message_ttl = 5;
-            props.mls_is_creator = benchmark->has_sender && i == 0;
-            props.ackmode = NP_MX_ACK_DESTINATION;
+            props.mls_is_creator =
+                    benchmark->has_sender && i == 0 && benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION;
+            //props.ackmode = NP_MX_ACK_DESTINATION;
         }
         np_set_mx_properties(nodes[i], "mysubject", props);
         assert(np_ok == np_add_receive_cb(nodes[i], "mysubject", receive));
@@ -129,11 +111,8 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         free(address_port);
         free(connection_string);
     }
-    // wait 60s until everyone is joined into the group and ready for benchmark
-    // [ ] measure start timestamp
-    // [ ] measure end timestamp after every message is sent or received
-    bool isinitialized = false;
-    while (!benchmark->finished) {
+    bool isRunning = true;
+    while (isRunning) {
         // run event loop
         // controller
         if (np_ok != np_run(ctrL_ac, 0)) {
@@ -142,36 +121,47 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         // nodes
         int is_ready_count = 0;
         int is_initialized_count = 0;
-        for (int i = 0; i < benchmark->num_clients_per_node; i++) {
-            np_mls_client *client = np_mls_get_client_from_module(nodes[i]);
-            if (np_mls_is_everyone_authorized(client, "mysubject", benchmark->num_clients_per_node)) {
-                is_ready_count++;
-            }
-            for (int l = 0; l < arraylist_size(client->group_subjects); l++) {
-                int groupcount = 0;
-                char *subject = arraylist_get(client->group_subjects, l);
-                if (subject) {
-                    np_mls_group *group = hashtable_get(client->groups, subject);
-                    if (group && group->isInitialized) {
-                        groupcount++;
+        if(benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
+            for (int i = 0; i < benchmark->num_clients_per_node; i++) {
+                np_mls_client *client = np_mls_get_client_from_module(nodes[i]); // <--- this
+                if (np_mls_is_everyone_authorized(client, "mysubject", benchmark->num_clients_per_node)) {
+                    is_ready_count++;
+                }
+                if (benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
+                    for (int l = 0; l < arraylist_size(client->group_subjects); l++) {
+                        int groupcount = 0;
+                        char *subject = arraylist_get(client->group_subjects, l);
+                        if (subject) {
+                            np_mls_group *group = hashtable_get(client->groups, subject);
+                            if (group && group->isInitialized) {
+                                groupcount++;
+                            }
+                        }
+                        if (groupcount == arraylist_size(client->group_subjects)) {
+                            is_initialized_count++;
+                        }
                     }
                 }
-                if (groupcount == arraylist_size(client->group_subjects)) {
-                    is_initialized_count++;
+                if (np_ok != np_run(nodes[i], 0)) {
+                    printf("Error in np_run on node nr:%d\n", i);
                 }
             }
-            /*if (i == 0) {
-                np_send(nodes[0], "mysubject", "Hallo Welt!", 12);
-                printf("Sent!\n");
-            }*/
-            if (np_ok != np_run(nodes[i], 0)) {
-                printf("Error in np_run on node nr:%d\n", i);
+        } else {
+            for(int i = 0; i < benchmark->num_clients_per_node; i++) {
+                benchmark_userdata *userdata = np_get_userdata(nodes[i]);
+                if(userdata && userdata->result->authorized) {
+                    is_ready_count++;
+                }
+                if (np_ok != np_run(nodes[i], 0)) {
+                    printf("Error in np_run on node nr:%d\n", i);
+                }
             }
         }
         if (is_ready_count == benchmark->num_clients_per_node && !benchmark->ready) {
             printf("Benchmark is ready to go! Fire!\n");
             benchmark->ready = true;
-        } else if (benchmark->ready && is_initialized_count == benchmark->num_clients_per_node && !benchmark->isRunning) {
+        } else if (benchmark->ready && is_initialized_count == benchmark->num_clients_per_node &&
+                   !benchmark->isRunning && benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
             benchmark->isRunning = true;
             struct benchmark_thread_args args;
             args.benchmark = benchmark;
@@ -179,8 +169,18 @@ void run_benchmark(np_mls_benchmark *benchmark) {
             // Create & start user input thread
             pthread_t input_thread;
             pthread_create(&input_thread, NULL, send_thread, &args);
-        } else if(benchmark->finished) {
+        } else if(benchmark->ready && !benchmark->isRunning && benchmark->benchmark_algorithm == NP_MLS_JSON_ENCRYPTION) {
+            benchmark->isRunning = true;
+            struct benchmark_thread_args args;
+            args.benchmark = benchmark;
+            args.nodes = nodes;
+            // Create & start user input thread
+            pthread_t input_thread;
+            pthread_create(&input_thread, NULL, send_thread, &args);
+        }
+        if (benchmark->finished) {
             np_mls_benchmark_print_results(benchmark);
+            isRunning = false;
             break;
         }
     }
@@ -192,14 +192,9 @@ void send_thread(struct benchmark_thread_args *args) {
     unsigned char *bytes = gen_rdm_bytestream(args->benchmark->packet_byte_size);
     np_context *ac = args->nodes[0];
     benchmark_userdata *userdata = np_get_userdata(ac);
-    userdata->result->duration_clock = np_mls_clock_start();
     printf("Benchmarking...\n");
-    // TODO:
-    // Add total bytes sent/received
-    // Sender should start Benchmark when sending first packet and stop when last packet was sent
-    // Receiver should start Benchmark on receiving the first message and stop when received the last message
-    // benchmark routine between here
-    for(int i = 0; i < args->benchmark->message_send_num + 20; i++) {
+    userdata->result->duration_clock = np_mls_clock_start();
+    for (int i = 0; i < args->benchmark->message_send_num + 20; i++) {
         np_send(args->nodes[0], "mysubject", bytes, args->benchmark->packet_byte_size);
     }
 }
@@ -207,7 +202,7 @@ void send_thread(struct benchmark_thread_args *args) {
 unsigned char *gen_rdm_bytestream(size_t num_bytes) {
     unsigned char *stream = malloc(num_bytes);
     size_t i;
-    srand((unsigned int) time (NULL));
+    srand((unsigned int) time(NULL));
     for (i = 0; i < num_bytes; i++) {
         stream[i] = rand();
     }
@@ -233,7 +228,7 @@ authorize(np_context *ac, struct np_token *id) {
 bool
 receive(np_context *ac, struct np_message *message) {
     benchmark_userdata *userdata = np_get_userdata(ac);
-    if(!userdata->benchmark->finished) {
+    if (!userdata->benchmark->finished) {
         unsigned char local_fingerprint[NP_FINGERPRINT_BYTES];
         np_node_fingerprint(ac, local_fingerprint);
         char *local_fingerprint_str = calloc(1, 65);
