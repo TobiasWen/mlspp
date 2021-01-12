@@ -738,7 +738,7 @@ State::decrypt(const MLSCiphertext& ct)
   printf("[Decrypt] Current epoch: %lu and we received epoch: %lu\n", _epoch, ct.epoch);
   if (ct.epoch != _epoch) {
       // TODO TOBI
-    //throw InvalidParameterError("Ciphertext not from this epoch");
+    throw InvalidParameterError("Ciphertext not from this epoch");
   }
 
   // Decrypt and parse the sender data

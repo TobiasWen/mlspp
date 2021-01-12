@@ -57,7 +57,7 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
     }
 
     assert(np_ok == np_add_receive_cb(context, protocol_subject, np_mls_receive));
-    printf("Created mls protocol subject %s on client %s!\n", protocol_subject, mls_client->id);
+    //printf("Created mls protocol subject %s on client %s!\n", protocol_subject, mls_client->id);
 }
 
 bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event) {
@@ -93,10 +93,10 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
       char *subject_id_str = np_mls_get_id_string(msg_prop->mls_connected->msg_subject);
       np_mls_group *group = np_mls_get_group_from_subject_id_str(mls_client, context, subject_id_str);
       if(group == NULL) {
-        printf("np_in_cb_wrapper group NULL\n");
+        printf("np_mls_in_cb_wrapper group NULL\n");
         ret = false;
       } else {
-        printf("np_in_cb_wrapper decrypting\n");
+        printf("np_mls_in_cb_wrapper decrypting\n");
         benchmark_userdata *userdata = np_get_userdata(context);
         np_mls_clock *my_clock = np_mls_clock_start();
         np_mls_add_int_to_list_result(NP_MLS_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
@@ -119,7 +119,7 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
   log_trace_msg(LOG_TRACE, "start: void __np_out_mls_callback_wrapper(...){");
 
   NP_CAST(event.user_data, np_message_t, message);
-  np_dhkey_t prop_dhkey = _np_msgproperty_dhkey(OUTBOUND, _np_message_get_subject(message) );
+  np_dhkey_t prop_dhkey = _np_msgproperty_dhkey(OUTBOUND, _np_message_get_subject(message));
   np_key_t*  prop_key   = _np_keycache_find(context, prop_dhkey);
   NP_CAST(sll_first(prop_key->entities)->val, np_msgproperty_t, my_property);
 
@@ -148,7 +148,7 @@ bool _np_out_mls_callback_wrapper(np_state_t* context, const np_util_event_t eve
       np_mls_add_int_to_list_result(NP_MLS_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
       np_mls_clock_destroy(my_clock);
       np_tree_elem_t* enc_msg_part = np_tree_find_str(message->body, NP_ENCRYPTED);
-      np_mls_increase_message_count(userdata->benchmark, userdata->result);
+      //np_mls_increase_message_count(userdata->benchmark, userdata->result);
       if (NULL == enc_msg_part)
       {
         printf("couldn't find encrypted msg part in encryption method\n");
@@ -170,7 +170,7 @@ np_mls_create_client(np_context* ac)
   np_id_str(local_fingerprint_str, local_fingerprint);
   np_mls_client* new_client = calloc(1, sizeof(*new_client));
   new_client->mls_client = mls_create_client(
-    X25519_CHACHA20POLY1305_SHA256_Ed25519, local_fingerprint_str);
+          X25519_CHACHA20POLY1305_SHA256_Ed25519, local_fingerprint_str);
   new_client->id = local_fingerprint_str;
   new_client->groups = hashtable_create();
   new_client->group_subjects = arraylist_create();
@@ -385,6 +385,7 @@ np_mls_update(np_mls_client* client, np_context* ac, const char* subject)
   np_id_str(subject_id_str, subject_id);
   np_mls_group* group = hashtable_get(client->groups, subject_id_str);
   if (group != NULL) {
+    printf("Waiting on 'np_mls_update' mutex!\n");
     pthread_mutex_lock(client->lock);
     // create update
     mls_bytes update = mls_session_update(group->local_session);
@@ -420,6 +421,7 @@ np_mls_remove(np_mls_client *client,
   np_id_str(subject_id_str, subject_id);
   np_mls_group* group = hashtable_get(client->groups, subject_id_str);
   if (group != NULL) {
+    printf("Waiting on 'np_mls_remove' mutex!\n");
     pthread_mutex_lock(client->lock);
     // create update
     mls_bytes remove = mls_session_remove(group->local_session, remove_index);
@@ -578,7 +580,10 @@ bool np_mls_is_everyone_authorized(np_mls_client *client, char *subject, int cli
             for(int i = 0; i < arraylist_size(client->authorized_users); i++) {
                 char *user = arraylist_get(client->authorized_users, i);
                 if(user != NULL) {
+                    //printf("Waiting on 'np_mls_is_everyone_authorized' mutex!\n");
+                    pthread_mutex_lock(client->lock);
                     np_mls_authorization_state *auth_state = hashtable_get(subject_clients_auth_state, user);
+                    pthread_mutex_unlock(client->lock);
                     if(auth_state != NULL && auth_state->userspace_authorized && auth_state->protocol_authorized) {
                         fully_authorized_clients_num++;
                     }
@@ -593,6 +598,7 @@ bool np_mls_is_everyone_authorized(np_mls_client *client, char *subject, int cli
 }
 bool np_mls_add_auth_userspace(np_mls_client *client, char *subject, char* issuer) {
     if(client != NULL && subject != NULL && issuer != NULL) {
+        //printf("Waiting on 'np_mls_add_auth_userspace' mutex!\n");
         pthread_mutex_lock(client->lock);
         hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, subject);
         if(subject_clients_auth_state == NULL) {
@@ -616,6 +622,7 @@ bool np_mls_add_auth_userspace(np_mls_client *client, char *subject, char* issue
 }
 bool np_mls_add_auth_mls(np_mls_client *client, char *subject, char* issuer) {
     if(client != NULL && subject != NULL && issuer != NULL) {
+        //printf("Waiting on 'np_mls_add_auth_mls' mutex!\n");
         pthread_mutex_lock(client->lock);
         hashtable *subject_clients_auth_state = hashtable_get(client->subject_authorization_state, subject);
         if(subject_clients_auth_state == NULL) {
@@ -751,7 +758,11 @@ np_mls_handle_message(np_mls_client* client,
                       np_context* ac,
                       struct np_message* message)
 {
-  printf("[%s] Received message on protocol subject\n", client->id);
+    benchmark_userdata *userdata = np_get_userdata(ac);
+    if(userdata->benchmark->isRunning) {
+        return true;
+    }
+  //printf("[%s] Received message on protocol subject\n", client->id);
   //TODO: Return at end of function after free call and not in switch (memory leak)
   //TODO: Dont convert message->subject to np_id
   np_tree_t* tree = np_tree_create();
@@ -885,7 +896,8 @@ np_mls_handle_message(np_mls_client* client,
             np_ok ==
             np_mls_send(
               client, ac, group->subject, welcome_packet.data, welcome_packet.size));
-          printf("Sent welcome!\n");
+          printf("Sent welcome! Waiting 1 sec\n");
+          //sleep(1);
           // cleanup
           mls_delete_bytes(add_commit);
           mls_delete_bytes_tuple(welcome_commit);
@@ -916,10 +928,12 @@ np_mls_handle_welcome(np_mls_client* client,
                       mls_bytes group_id)
 {
   // lock mutex
+  printf("Waiting on 'np_mls_handle_welcome' mutex!\n");
   pthread_mutex_lock(client->lock);
   // check if already in group
   np_mls_group* group = hashtable_get(client->groups, subject);
   if (group != NULL) {
+    pthread_mutex_unlock(client->lock);
     return true;
   }
   // get pending join for subject
@@ -977,7 +991,7 @@ np_mls_handle_group_operation(np_mls_client* client,
 
   np_mls_group* group = hashtable_get(client->groups, subject);
   if (group == NULL) {
-    printf("Received group operation for non-existing group!\n");
+  //  printf("Received group operation for non-existing group!\n");
     return true;
   }
   // extract operation from message

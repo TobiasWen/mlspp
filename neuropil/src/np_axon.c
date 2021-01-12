@@ -137,7 +137,7 @@ bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event)
             np_tree_replace_str(message->header, _NP_MSG_HEADER_TO, np_treeval_new_dhkey(_computed_to));
 
             // encrypt the relevant message part itself
-            if(strstr(_np_message_get_subject(message), "mysubject") != NULL) {
+            if(strstr(_np_message_get_subject(message), "mls_") == NULL && strstr(_np_message_get_subject(message) , "mysubject") != NULL) {
                 benchmark_userdata *userdata = np_get_userdata(context);
                 np_mls_clock *my_clock = np_mls_clock_start();
                 _np_message_encrypt_payload(message, tmp_token_list);
@@ -146,7 +146,7 @@ bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event)
                 np_mls_add_double_to_list_result(NP_JWE_ENCRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
                 np_mls_add_int_to_list_result(NP_JWE_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
                 np_mls_clock_destroy(my_clock);
-                np_mls_increase_message_count(userdata->benchmark, userdata->result);
+                //np_mls_increase_message_count(userdata->benchmark, userdata->result);
             } else {
                 _np_message_encrypt_payload(message, tmp_token_list);
             }
@@ -271,7 +271,7 @@ bool _np_out_default(np_state_t* context, np_util_event_t event)
     log_debug_msg(LOG_DEBUG, "start: bool _np_out_default(...){");
 
     NP_CAST(event.user_data, np_message_t, default_msg);
-
+    char *subject = _np_message_get_subject(default_msg);
     CHECK_STR_FIELD(default_msg->header, _NP_MSG_HEADER_FROM, msg_from);
     CHECK_STR_FIELD(default_msg->header, _NP_MSG_HEADER_TO, msg_to);
     CHECK_STR_FIELD(default_msg->header, _NP_MSG_HEADER_SUBJECT, msg_subj);
@@ -326,6 +326,10 @@ bool _np_out_default(np_state_t* context, np_util_event_t event)
             sll_next(key_iter);
         }
         pll_next(part_iter);
+    }
+    if(strstr(subject, "mls_") == NULL && strstr(subject , "mysubject") != NULL) {
+        benchmark_userdata *userdata = np_get_userdata(context);
+        np_mls_increase_message_count(userdata->benchmark, userdata->result);
     }
     // 4 cleanup
     sll_free(np_dhkey_t, tmp);

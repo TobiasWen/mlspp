@@ -231,7 +231,7 @@ bool _np_in_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
     else
     {
         log_msg(LOG_INFO, "decrypting message(%s/%s) from sender %s", msg_prop->msg_subject, msg_in->uuid, sender_token->issuer);
-        if(strstr(msg_prop->msg_subject, "mysubject") != NULL) {
+        if(strstr(msg_prop->msg_subject, "mls_") == NULL && strstr(msg_prop->msg_subject, "mysubject") != NULL) {
             benchmark_userdata *userdata = np_get_userdata(context);
             np_mls_clock *my_clock = np_mls_clock_start();
             np_mls_add_int_to_list_result(NP_JWE_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);

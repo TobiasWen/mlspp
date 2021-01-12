@@ -31,12 +31,12 @@ int
 main() {
     np_mls_benchmark *benchmark =
             np_mls_create_benchmark("MyBenchmark",
-                                    "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                                    5,
-                                    50,
+                                    generateUUID(),
+                                    12,
+                                    500,
                                     10,
                                     NP_MLS_BENCHMARK_MESH_TOPOLOGY,
-                                    NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
+                    NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
                                     true);
     run_benchmark(benchmark);
     return 0;
@@ -162,6 +162,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
             benchmark->ready = true;
         } else if (benchmark->ready && is_initialized_count == benchmark->num_clients_per_node &&
                    !benchmark->isRunning && benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
+            printf("Starting MLS benchmark!\n");
             benchmark->isRunning = true;
             struct benchmark_thread_args args;
             args.benchmark = benchmark;
@@ -170,6 +171,7 @@ void run_benchmark(np_mls_benchmark *benchmark) {
             pthread_t input_thread;
             pthread_create(&input_thread, NULL, send_thread, &args);
         } else if(benchmark->ready && !benchmark->isRunning && benchmark->benchmark_algorithm == NP_MLS_JSON_ENCRYPTION) {
+            printf("Starting JWE benchmark!\n");
             benchmark->isRunning = true;
             struct benchmark_thread_args args;
             args.benchmark = benchmark;
@@ -193,6 +195,7 @@ void send_thread(struct benchmark_thread_args *args) {
     np_context *ac = args->nodes[0];
     benchmark_userdata *userdata = np_get_userdata(ac);
     printf("Benchmarking...\n");
+    //sleep(15);
     userdata->result->duration_clock = np_mls_clock_start();
     for (int i = 0; i < args->benchmark->message_send_num + 20; i++) {
         np_send(args->nodes[0], "mysubject", bytes, args->benchmark->packet_byte_size);
@@ -220,7 +223,7 @@ authorize(np_context *ac, struct np_token *id) {
     np_node_fingerprint(ac, local_fingerprint);
     char *local_fingerprint_str = calloc(1, 65);
     np_id_str(local_fingerprint_str, local_fingerprint);
-    printf("[%s] Authorizing on subject %s issuer:%s\n", local_fingerprint_str, id->subject, id->issuer);
+    //printf("[%s] Authorizing on subject %s issuer:%s\n", local_fingerprint_str, id->subject, id->issuer);
     free(local_fingerprint_str);
     return true;
 }
@@ -233,7 +236,7 @@ receive(np_context *ac, struct np_message *message) {
         np_node_fingerprint(ac, local_fingerprint);
         char *local_fingerprint_str = calloc(1, 65);
         np_id_str(local_fingerprint_str, local_fingerprint);
-        printf("[%s] received: %.*s\n", local_fingerprint_str, (int) message->data_length, message->data);
+        //printf("[%s] received: %.*s\n", local_fingerprint_str, (int) message->data_length, message->data);
         free(local_fingerprint_str);
     }
     return true;

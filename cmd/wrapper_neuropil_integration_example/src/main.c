@@ -40,8 +40,7 @@ main(int argc, char *argv[]) {
                                     5,
                                     NP_MLS_BENCHMARK_MESH_TOPOLOGY,
                                     NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
-                                    true,
-                                    "http://localhost:3333");
+                                    true);
 
 
     assert(np_ok == np_listen(ac, "udp4", "localhost", port));

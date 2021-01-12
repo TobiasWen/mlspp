@@ -208,12 +208,14 @@ void* np_mls_get_value_from_result(char *key, np_mls_benchmark_result *result) {
 }
 
 void np_mls_increase_message_count(np_mls_benchmark *benchmark, np_mls_benchmark_result *result) {
+    pthread_mutex_lock(result->lock);
+    bool just_ready = false;
+
     if(benchmark != NULL && result != NULL && !benchmark->finished && result->message_count < benchmark->message_send_num) {
-        pthread_mutex_lock(result->lock);
         result->message_count++;
         if(result->message_count >= benchmark->message_send_num) {
-            result->finished = true;
             np_mls_clock_stop(result->duration_clock);
+            result->finished = true;
             int ready_results = 0;
             for(int i = 0; i < arraylist_size(benchmark->results); i++) {
                 np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
@@ -225,14 +227,17 @@ void np_mls_increase_message_count(np_mls_benchmark *benchmark, np_mls_benchmark
                 pthread_mutex_lock(benchmark->lock);
                 benchmark->finished = true;
                 pthread_mutex_unlock(benchmark->lock);
-                np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_WALL, result->duration_clock->wall_time_used, "s", result);
-                np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_CPU, result->duration_clock->cpu_time_used, "s", result);
+                just_ready = true;
             }
-        } else if(result->message_count == 1) {
+        } else if(result->message_count == 1 && !result->is_sender) {
             result->duration_clock = np_mls_clock_start();
         }
         printf("[%s] Result messagecount: %d\n", result->client_id, result->message_count);
-        pthread_mutex_unlock(result->lock);
+    }
+    pthread_mutex_unlock(result->lock);
+    if(benchmark->finished && just_ready) {
+        np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_WALL, result->duration_clock->wall_time_used, "s", result);
+        np_mls_add_double_value_to_result(NP_BENCHMARK_TIME_CPU, result->duration_clock->cpu_time_used, "s", result);
     }
 }
 
@@ -348,7 +353,7 @@ void np_mls_benchmark_print_results(np_mls_benchmark *benchmark) {
         np_mls_benchmark_result *cur_result = arraylist_get(benchmark->results, i);
         if(cur_result != NULL && !cur_result->is_sender) {
             avg_dec_time_wall_sum += np_mls_get_double_average(dec_time_wall, cur_result);
-            avg_dec_time_cpu_sum += np_mls_get_double_average(dec_time_wall, cur_result);
+            avg_dec_time_cpu_sum += np_mls_get_double_average(dec_time_cpu, cur_result);
         }
     }
     avg_dec_time_wall = avg_dec_time_wall_sum / (benchmark->num_clients_per_node -1);
