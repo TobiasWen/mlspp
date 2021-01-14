@@ -71,7 +71,7 @@
 
 bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event) 
 {
-    printf("_np_out_callback_wrapper fired!\n");
+    //printf("_np_out_callback_wrapper fired!\n");
     log_trace_msg(LOG_TRACE, "start: void __np_out_callback_wrapper(...){");
 
     NP_CAST(event.user_data, np_message_t, message);
@@ -145,6 +145,7 @@ bool _np_out_callback_wrapper(np_state_t* context, const np_util_event_t event)
                 np_mls_add_double_to_list_result(NP_JWE_ENCRYPTION_TIME_WALL, my_clock->wall_time_used, userdata->result);
                 np_mls_add_double_to_list_result(NP_JWE_ENCRYPTION_TIME_CPU, my_clock->cpu_time_used, userdata->result);
                 np_mls_add_int_to_list_result(NP_JWE_MESSAGE_OUT_BYTE_SIZE, message->body->byte_size, userdata->result);
+                printf("List size %d | Body byte size: %d\n", tmp_token_list->size, message->body->byte_size);
                 np_mls_clock_destroy(my_clock);
                 //np_mls_increase_message_count(userdata->benchmark, userdata->result);
             } else {

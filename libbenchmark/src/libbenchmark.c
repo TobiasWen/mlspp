@@ -232,7 +232,7 @@ void np_mls_increase_message_count(np_mls_benchmark *benchmark, np_mls_benchmark
         } else if(result->message_count == 1 && !result->is_sender) {
             result->duration_clock = np_mls_clock_start();
         }
-        printf("[%s] Result messagecount: %d\n", result->client_id, result->message_count);
+        //printf("[%s] Result messagecount: %d\n", result->client_id, result->message_count);
     }
     pthread_mutex_unlock(result->lock);
     if(benchmark->finished && just_ready) {
@@ -381,6 +381,11 @@ void np_mls_benchmark_print_results(np_mls_benchmark *benchmark) {
     printf("            Average Decryption Time (Wall): %.9fs\n", avg_dec_time_wall);
     printf("             Average Decryption Time (Cpu): %.9fs\n", avg_dec_time_cpu);
     printf("                    Encrypted Message size: %f bytes\n", np_mls_get_int_average(msg_out_size, sender_result));
+    printf("     Bytes sent per message (3 recipients): %f bytes\n", (np_mls_get_int_average(msg_out_size, sender_result)) * 3);
+    printf("              Bytes sent per message (P2P): %f bytes\n", (np_mls_get_int_average(msg_out_size, sender_result)) * benchmark->num_clients_per_node);
+    printf("                          Total bytes size: %f bytes\n", (np_mls_get_int_average(msg_out_size, sender_result)) * (benchmark->num_clients_per_node-1));
+    printf("           Total bytes sent (3 recipients): %f bytes\n", (np_mls_get_int_average(msg_out_size, sender_result)) * (benchmark->num_clients_per_node-1) * 3);
+    printf("                    Total bytes sent (P2P): %f bytes\n", (np_mls_get_int_average(msg_out_size, sender_result)) * (benchmark->num_clients_per_node-1) * benchmark->num_clients_per_node);
     printf("-------------------------------------------------------------------------------\n");
 }
 

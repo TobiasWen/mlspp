@@ -32,11 +32,11 @@ main() {
     np_mls_benchmark *benchmark =
             np_mls_create_benchmark("MyBenchmark",
                                     generateUUID(),
-                                    12,
-                                    500,
-                                    10,
-                                    NP_MLS_BENCHMARK_MESH_TOPOLOGY,
-                    NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
+                                    2,
+                                    50,
+                                    50,
+                                    NP_MLS_BENCHMARK_STAR_TOPOLOGY,
+                   NP_MLS_ENCRYPTION_X25519_CHACHA20POLY1305_SHA256_Ed25519,
                                     true);
     run_benchmark(benchmark);
     return 0;
@@ -97,9 +97,13 @@ void run_benchmark(np_mls_benchmark *benchmark) {
         struct np_mx_properties props = np_get_mx_properties(nodes[i], "mysubject");
         if (benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION) {
             //props.intent_ttl = 10.0;
+            props.intent_ttl = 180.0;
             props.encryption_algorithm =
                     benchmark->benchmark_algorithm == NP_MLS_JSON_ENCRYPTION ? NEUROPIL_ENCRYPTION : MLS_ENCRYPTION;
-            props.message_ttl = 5;
+            //props.message_ttl = 5;
+            //props.cache_size = 16960;
+            //props.max_parallel = 255;
+
             props.mls_is_creator =
                     benchmark->has_sender && i == 0 && benchmark->benchmark_algorithm != NP_MLS_JSON_ENCRYPTION;
             //props.ackmode = NP_MX_ACK_DESTINATION;

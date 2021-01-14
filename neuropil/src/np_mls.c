@@ -43,6 +43,7 @@ void _np_mls_register_protocol_subject(np_state_t* context, const char* subject,
     np_msgproperty_t* mls_protocol_property = _np_msgproperty_get_or_create(context, DEFAULT_MODE, protocol_subject);
     mls_protocol_property->mls_connected = property;
     //mls_protocol_property->token_max_ttl = 10.0;
+    //mls_protocol_property->token_min_ttl = 180.0;
     property->mls_connected = mls_protocol_property;
 
     if (true == sll_contains(np_evt_callback_t, property->clb_outbound, _np_out_callback_wrapper, np_evt_callback_t_sll_compare_type))
@@ -96,7 +97,7 @@ bool _np_in_mls_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
         printf("np_mls_in_cb_wrapper group NULL\n");
         ret = false;
       } else {
-        printf("np_mls_in_cb_wrapper decrypting\n");
+        //printf("np_mls_in_cb_wrapper decrypting\n");
         benchmark_userdata *userdata = np_get_userdata(context);
         np_mls_clock *my_clock = np_mls_clock_start();
         np_mls_add_int_to_list_result(NP_MLS_MESSAGE_IN_BYTE_SIZE, msg_in->body->byte_size, userdata->result);
@@ -170,7 +171,7 @@ np_mls_create_client(np_context* ac)
   np_id_str(local_fingerprint_str, local_fingerprint);
   np_mls_client* new_client = calloc(1, sizeof(*new_client));
   new_client->mls_client = mls_create_client(
-          X25519_CHACHA20POLY1305_SHA256_Ed25519, local_fingerprint_str);
+          X448_CHACHA20POLY1305_SHA512_Ed448, local_fingerprint_str);
   new_client->id = local_fingerprint_str;
   new_client->groups = hashtable_create();
   new_client->group_subjects = arraylist_create();
@@ -340,6 +341,7 @@ np_mls_subscribe(np_mls_client* client,
 }
 
 bool np_mls_receive(np_state_t* context, struct np_message* message) {
+  //printf("I received a message hehehe!\n");
   np_mls_client *mls_client = np_module(mls)->client;
   bool ret = np_mls_handle_message(mls_client, context, message);
   return ret;
@@ -896,8 +898,8 @@ np_mls_handle_message(np_mls_client* client,
             np_ok ==
             np_mls_send(
               client, ac, group->subject, welcome_packet.data, welcome_packet.size));
-          printf("Sent welcome! Waiting 1 sec\n");
-          //sleep(1);
+          printf("Sent welcome!\n");
+          //sleep(2);
           // cleanup
           mls_delete_bytes(add_commit);
           mls_delete_bytes_tuple(welcome_commit);
