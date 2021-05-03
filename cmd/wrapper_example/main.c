@@ -1,6 +1,5 @@
 #include "mlspp_wrapper.h"
 #include "stdio.h"
-#include "neuropil.h"
 
 void
 silence_unused(void* val)

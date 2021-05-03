@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "neuropil.h"
-#include "libbenchmark.h"
 
 bool
 authorize(np_context*, struct np_token*);
@@ -26,22 +25,15 @@ main(int argc, char* argv[])
   struct np_settings cfg;
   np_default_settings(&cfg);
   np_context* ac = np_new_context(&cfg);
-  np_mls_benchmark *benchmark =
-    np_mls_create_benchmark("MyBenchmark",
-                            "ba4a8c4c-3f91-11eb-b378-0242ac130002",
-                            4,
-                            NP_MLS_BENCHMARK_MESH_TOPOLOGY,
-                            true);
-  np_set_userdata(ac, benchmark);
 
-  assert(np_ok == np_listen(ac, "udp4", "localhost", 6789));
+  assert(np_ok == np_listen(ac, "udp4", "localhost", 4567));
   assert(np_ok == np_join(ac, "*:udp4:localhost:2345"));
   assert(np_ok == np_set_authorize_cb(ac, authorize));
 
 
   // set mls encryption
   struct np_mx_properties props = np_get_mx_properties(ac, "mysubject");
-  //props.encryption_algorithm = MLS_ENCRYPTION;
+  props.encryption_algorithm = MLS_ENCRYPTION;
   //props.mls_is_creator = true;
   np_set_mx_properties(ac, "mysubject", props);
 
