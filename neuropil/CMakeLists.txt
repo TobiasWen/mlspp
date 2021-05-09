@@ -61,16 +61,16 @@ add_library(${CURRENT_LIB_NAME} STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/prometheus/prometheus.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/sysinfo/np_sysinfo.c
         ${CMAKE_CURRENT_SOURCE_DIR}/framework/http/np_http.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/event/ev.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/json/parson.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/msgpack/cmp.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/gpio/bcm2835.c)
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext_tools/event/ev.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext_tools/parson/parson.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext_tools/msgpack/cmp.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext_tools/gpio/bcm2835.c)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-target_link_libraries(neuropil sodium)
+target_link_libraries(${CURRENT_LIB_NAME} mlspp-c sodium pthread m)
 
 target_include_directories(${CURRENT_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/framework" "${CMAKE_SOURCE_DIR}/wrapper/include")
 target_include_directories(${CURRENT_LIB_NAME} PUBLIC )
