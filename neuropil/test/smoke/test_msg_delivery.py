@@ -1,20 +1,30 @@
+# SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+# SPDX-License-Identifier: OSL-3.0
+
 import unittest
 import time
+import math
 from neuropil import NeuropilNode, NeuropilCluster, neuropil, np_token, np_message
 from misc import TestHelper
+from multiprocessing import Value
+from ctypes import c_char, c_bool
 
-msg_delivery_succ = False
+import random
+import string
+import sys
+
 class MsgDeliveryTest(unittest.TestCase):
-    @staticmethod
-    def msg_received(node:NeuropilNode, message:np_message):
-        global msg_delivery_succ
-        msg_delivery_succ = True
+
+    def msg_received(self, node:NeuropilNode, message:np_message):
+        self.msg_delivery_succ.value = True
+        self.assertEqual(sys.getsizeof(message.raw()), self.target_size)
         return True
 
-    def test_msg_delivery(self):
-        global msg_delivery_succ
+    def _test_msg_X_delivery(self, size):
+        self.msg_delivery_succ = Value(c_bool, False)
+        self.target_size = size
 
-        np_c = NeuropilCluster(    3, port_range=4010, auto_run=False, log_file_prefix="logs/smoke_msg_delivery_cl_")
+        np_c = NeuropilCluster(    3, port_range=4010, auto_run=False, log_file_prefix="logs/smoke_test_msg_delivery_cl_")
         np_1 = NeuropilNode(4001, log_file="logs/smoke_test_msg_delivery_nl1.log", auto_run=False, no_threads=6)
         np_2 = NeuropilNode(4002, log_file="logs/smoke_test_msg_delivery_nl2.log",auto_run=False)
 
@@ -39,24 +49,26 @@ class MsgDeliveryTest(unittest.TestCase):
         np_2.join(np1_addr)
         np_c.join(np2_addr)
 
-        timeout = 120 #sec
+        timeout = 180 #sec
 
         t1 = time.time()
         elapsed = 0.
         send = False
+        data = ''.join(random.choice(string.ascii_uppercase) for i in range(self.target_size-33)).encode("utf-8")
+
         try:
-            while elapsed < timeout:
+            while elapsed < timeout and not self.msg_delivery_succ.value:
                 elapsed = float(time.time() - t1)
-                # TODO: remove elapsed > X condition after reimplementation of np_has_receiver_for or a corresponding cache system
-                if np_1.np_has_receiver_for(subject) and elapsed > mxp1.message_ttl and not send :
-                    if np_1.send(subject, b'test') != neuropil.np_ok:
+
+                if np_1.np_has_receiver_for(subject) and not send:
+                    if np_1.send(subject, data) != neuropil.np_ok:
                         print("ERROR sending Data")
                     else:
-                        print("sending Data")
                         send = True
 
-                if msg_delivery_succ:
+                if self.msg_delivery_succ.value:
                     break
+                np_1.run(math.pi/10)
 
         finally:
             np_1.shutdown()
@@ -64,4 +76,15 @@ class MsgDeliveryTest(unittest.TestCase):
             np_c.shutdown()
 
         self.assertTrue(send)
-        self.assertTrue(msg_delivery_succ)
+        self.assertTrue(self.msg_delivery_succ.value)
+
+    def test_msg_1k_delivery(self):
+        self._test_msg_X_delivery(1000)
+    def test_msg_10k_delivery(self):
+        self._test_msg_X_delivery(1000*50)
+    #def test_msg_100k_delivery(self):
+    #    self._test_msg_X_delivery(1000*100)
+    #def test_msg_1MB_delivery(self):
+    #    self._test_msg_X_delivery(1000*1000)
+    #def test_msg_10MB_delivery(self):
+    #    self._test_msg_X_delivery(1000*1000*10)

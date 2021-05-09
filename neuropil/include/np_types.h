@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #ifndef _NP_TYPES_H_
 #define _NP_TYPES_H_
@@ -53,6 +53,7 @@ typedef struct np_node_s np_node_t;
 typedef np_node_t* np_node_ptr;
 
 typedef struct np_state_s np_state_t;
+typedef struct np_state_t* np_state_ptr;
 
 
 typedef struct np_tree_conf_s np_tree_conf_t;
@@ -102,6 +103,7 @@ NP_PLL_GENERATE_PROTOTYPES(np_aaatoken_ptr);
 
 NP_SLL_GENERATE_PROTOTYPES(void_ptr);
 NP_SLL_GENERATE_PROTOTYPES(char_ptr);
+NP_SLL_GENERATE_PROTOTYPES(np_state_ptr);
 NP_SLL_GENERATE_PROTOTYPES(np_aaatoken_ptr);
 NP_SLL_GENERATE_PROTOTYPES(np_key_ptr);
 NP_SLL_GENERATE_PROTOTYPES(np_message_ptr);

@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <assert.h>
 #include <errno.h>
@@ -21,6 +21,7 @@
 
 #include "np_types.h"
 #include "dtime.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_aaatoken.h"
 #include "np_axon.h"
@@ -324,7 +325,7 @@ void np_add_send_listener(np_context*ac, np_usercallbackfunction_t msg_handler_f
  * @param identity
  */
 void _np_set_identity(np_context*ac, np_aaatoken_t* identity)
-{    
+{
     np_ctx_cast(ac);
 
     np_dhkey_t search_key = np_aaatoken_get_fingerprint(identity, false);

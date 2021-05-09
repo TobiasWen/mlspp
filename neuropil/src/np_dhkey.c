@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 #include "np_dhkey.h"
@@ -19,6 +19,7 @@
 
 #include "sodium.h"
 
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "util/np_tree.h"
 #include "np_util.h"
@@ -32,6 +33,7 @@ static np_dhkey_t __dhkey_min;
 static np_dhkey_t __dhkey_half;
 static np_dhkey_t __dhkey_max;
 
+NP_SLL_GENERATE_IMPLEMENTATION(np_dhkey_t)
 
 char* _np_dhkey_generate_hash (const char* key_in)
 {
@@ -170,7 +172,7 @@ int8_t _np_dhkey_cmp (const np_dhkey_t* const k1, const np_dhkey_t* const k2)
 
 void _np_dhkey_add (np_dhkey_t* result, const np_dhkey_t* const op1, const np_dhkey_t* const op2)
 {
-    // we dont care about buffer overflow, since we are adding hashes
+    // we dont care about unsigned integer overflow, since we are adding hashes
     // as we are using uint32_t we always stay in valid data
     for (uint8_t i = 0; i < 8 ; i++)
     {

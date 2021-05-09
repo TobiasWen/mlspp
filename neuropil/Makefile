@@ -15,8 +15,8 @@ CFLAGS += -c -Wall -Wextra -g -gdwarf-2 -std=c99 -O1 -DDEBUG -DEV_STANDALONE -DH
 LDFLAGS=-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib -fPIC
 
 CLANG_SANITIZER=-fno-omit-frame-pointer -fsanitize-address-use-after-scope -fsanitize-coverage=edge,indirect-calls,trace-cmp,trace-div,trace-gep -fcoverage-mapping -fprofile-instr-generate
-CLANG_SANITIZER_COMPILE=-fsanitize=fuzzer-no-link,address $(CLANG_SANITIZER)
-CLANG_SANITIZER_LINK=-fsanitize=fuzzer,address $(CLANG_SANITIZER) 
+CLANG_SANITIZER_COMPILE=$(CLANG_SANITIZER) -fsanitize=address,fuzzer-no-link
+CLANG_SANITIZER_LINK=$(CLANG_SANITIZER) -fsanitize=address,fuzzer
 
 ifneq (,$(findstring FreeBSD, $(PLATFORM)))
   override LDFLAGS+=-lutil
@@ -38,7 +38,7 @@ endif
 endif
 
 # adjust these settings to your location of libsodium and libcriterion
-INCLUDES=-I./framework -I./include -I./ext_tools/Criterion/include  -I/usr/include -I/usr/local/opt/llvm/include 
+INCLUDES=-I./framework -I./include -I./ext_tools/Criterion/include  -I/usr/include -I/usr/local/opt/llvm/include
 
 SODIUM_LIBRARIES=-L/usr/local/lib -lsodium
 CRITERION_LIBRARIES=-L/usr/local/lib -lcriterion
@@ -50,15 +50,15 @@ TARGET=x86_64-apple-darwin-macho
 SOURCES_LIB  = src/dtime.c src/neuropil.c src/neuropil_data.c src/neuropil_attributes.c src/np_aaatoken.c src/np_axon.c src/util/np_bloom.c src/np_bootstrap.c src/np_crypto.c src/np_dendrit.c
 SOURCES_LIB += src/core/np_comp_identity.c src/core/np_comp_msgproperty.c src/core/np_comp_intent.c src/core/np_comp_node.c src/core/np_comp_alias.c
 SOURCES_LIB += src/np_dhkey.c src/np_event.c src/np_glia.c src/np_jobqueue.c src/np_key.c src/np_keycache.c src/np_legacy.c
-SOURCES_LIB += src/np_log.c src/np_memory.c src/np_message.c src/np_messagepart.c src/np_network.c src/np_pheromones.c
+SOURCES_LIB += src/np_log.c src/np_memory.c src/np_message.c src/np_messagepart.c src/np_network.c src/np_pheromones.c src/util/np_minhash.c
 SOURCES_LIB += src/np_node.c src/np_responsecontainer.c src/np_route.c src/util/np_scache.c src/np_serialization.c src/np_shutdown.c src/np_statistics.c
 SOURCES_LIB += src/np_threads.c src/np_time.c src/np_token_factory.c src/util/np_tree.c src/util/np_treeval.c src/np_util.c
 SOURCES_LIB += src/event/ev.c src/gpio/bcm2835.c  src/json/parson.c src/msgpack/cmp.c src/util/np_statemachine.c
 
 SOURCES_FWLIB = framework/prometheus/prometheus.c framework/http/np_http.c framework/sysinfo/np_sysinfo.c
 
-SOURCES_PRG  = examples/neuropil_hydra.c examples/neuropil_controller.c examples/neuropil_node.c examples/neuropil_sender.c examples/neuropil_cloud.c 
-SOURCES_PRG += examples/neuropil_receiver.c examples/neuropil_demo_service.c 
+SOURCES_PRG  = examples/neuropil_hydra.c examples/neuropil_controller.c examples/neuropil_node.c examples/neuropil_sender.c examples/neuropil_cloud.c
+SOURCES_PRG += examples/neuropil_receiver.c examples/neuropil_demo_service.c
 SOURCES_PRG += examples/neuropil_pingpong.c examples/neuropil_raspberry.c
 
 SOURCES_TST = test/test_suite.c test/test_fuzzing.c
@@ -118,7 +118,7 @@ build/test/lib/libneuropil.dylib: $(OBJECTS) $(FWOBJECTS)
 	$(CC) -g -Dx64 -target $(TARGET) $(LDFLAGS) $(CLANG_SANITIZER_COMPILE) -dynamiclib -std=c99 $(SODIUM_LIBRARIES) $(FWOBJECTS) $(OBJECTS) -o ./build/test/lib/libneuropil.dylib
 	# dsymutil build/lib/libneuropil.$(TARGET).dylib -o build/lib/libneuropil.dylib.dSYM
 
-bindings/luajit/build/neuropil_ffi.lua: 
+bindings/luajit/build/neuropil_ffi.lua:
 	./bindings/luajit/build.sh
 
 build/test/obj/%.o: framework/%.c

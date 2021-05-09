@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 /*
@@ -21,6 +21,7 @@
 
 #include "np_node.h"
 
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_legacy.h"
 #include "np_aaatoken.h"
@@ -195,7 +196,7 @@ np_node_t* _np_node_decode_from_str (np_state_t* context, const char *key)
 
     if (FLAG_CMP(proto, UNKNOWN_PROTO) || details.s_hostname == NULL || details.s_port == NULL)
     {
-        log_debug_msg(LOG_ERROR, "error decoding node from token str: %s / %s / %s / %s", details.s_dhkey, details.s_protocol, details.s_hostname, details.s_port);
+        log_debug_msg(LOG_ERROR, "error decoding node from token str: %s / %s / %s / %s orginal: %s", details.s_dhkey, details.s_protocol, details.s_hostname, details.s_port,to_parse);
         free(to_parse);
         return NULL;
     }
@@ -204,7 +205,7 @@ np_node_t* _np_node_decode_from_str (np_state_t* context, const char *key)
     np_dhkey_t _null_dhkey = {0};
     np_dhkey_t node_dhkey = np_dhkey_create_from_hash(details.s_dhkey);
     if (_np_dhkey_equal(&_null_dhkey, &node_dhkey)) {
-        log_debug_msg(LOG_ERROR, "error decoding node from token str: %s / %s / %s / %s", details.s_dhkey, details.s_protocol, details.s_hostname, details.s_port);
+        log_debug_msg(LOG_ERROR, "error decoding node from token str: %s / %s / %s / %s orginal: %s", details.s_dhkey, details.s_protocol, details.s_hostname, details.s_port,to_parse);
         details.s_dhkey[0] = '*';
         details.s_dhkey[1] = '\0';
     }

@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #ifndef _NP_PHEROMONE_TABLE_H
 #define _NP_PHEROMONE_TABLE_H
@@ -28,8 +28,6 @@ extern "C" {
  * right now this is not planned. If you would like to do so, please take care of the probability
  * calculations involved).
  */
-
-    NP_SLL_GENERATE_PROTOTYPES(np_dhkey_t);
 
     // the pheromone struct defines the data we would liek to store in our table
     typedef struct np_pheromone_s

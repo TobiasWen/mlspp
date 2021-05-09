@@ -1,4 +1,9 @@
-.. neuropil documentation master file, created by sphinx-quickstart on Tue Dec 15 20:54:08 2015.
+..
+  SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+..
+  SPDX-License-Identifier: OSL-3.0
+
+.. neuropil documentation main file, created by sphinx-quickstart on Tue Dec 15 20:54:08 2015.
 
 .. meta::
    :description: neuropil is a secure messaging library for IoT, robotics and more
@@ -22,17 +27,22 @@ Contents:
 
    intro
    core_concepts
-   ngizero
-   compared_to
    tutorial
+   security
+   whatis
+   identities
+   realms
+   ngizerodiscovery
+   ngizerosearch
    api
    protocol
-   license
    knowhow
+   contributers
+   license
    trademark
    faq
+   compared_to
    glossary
-
 
 
 Indices and tables

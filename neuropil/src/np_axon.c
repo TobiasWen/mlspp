@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <assert.h>
 #include <errno.h>
@@ -15,6 +15,9 @@
 
 #include "np_axon.h"
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "msgpack/cmp.h"
 #include "event/ev.h"
 #include "sodium.h"
@@ -33,6 +36,7 @@
 #include "np_key.h"
 #include "np_keycache.h"
 #include "np_legacy.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "util/np_list.h"
 #include "np_memory.h"
@@ -189,7 +193,7 @@ bool _np_out_forward(np_state_t* context, np_util_event_t event)
         log_debug_msg(LOG_DEBUG, "pheromone lookup failed, looking up routing table", forward_msg->uuid, sll_size(tmp));
         CHECK_STR_FIELD(forward_msg->header, _NP_MSG_HEADER_TO, msg_to_ele);    
         np_sll_t(np_key_ptr, route_tmp) = NULL;
-        uint8_t i = 1;
+        i = 1;
         do {
             route_tmp = _np_route_lookup(context, msg_to_ele.value.dhkey, i);
             i++;
@@ -230,8 +234,7 @@ bool _np_out_forward(np_state_t* context, np_util_event_t event)
         while (key_iter != NULL) 
         {
             if (!_np_dhkey_equal(&key_iter->val, &msg_from.value.dhkey)        &&
-                !_np_dhkey_equal(&key_iter->val, &context->my_node_key->dhkey) &&
-                !_np_dhkey_equal(&key_iter->val, &event.target_dhkey)  )
+                !_np_dhkey_equal(&key_iter->val, &context->my_node_key->dhkey)  )
             {
                 memcpy(part_iter->val->uuid, forward_msg->uuid, NP_UUID_BYTES);
                 log_debug_msg(LOG_DEBUG, "sending    message (%s) to next hop", forward_msg->uuid, key_iter->val);
@@ -384,8 +387,7 @@ bool _np_out_available_messages(np_state_t* context, np_util_event_t event)
         sll_iterator(np_dhkey_t) key_iter = sll_first(tmp);
         while (key_iter != NULL) 
         {
-            if (!_np_dhkey_equal(&key_iter->val, &msg_from.value.dhkey)        &&
-                !_np_dhkey_equal(&key_iter->val, &last_hop)                    &&
+            if (!_np_dhkey_equal(&key_iter->val, &last_hop)                    &&
                 !_np_dhkey_equal(&key_iter->val, &context->my_node_key->dhkey) )
             {
                 memcpy(part_iter->val->uuid, available_msg->uuid, NP_UUID_BYTES);
@@ -442,6 +444,7 @@ bool _np_out_pheromone(np_state_t* context, np_util_event_t msg_event)
         if (_np_dhkey_equal(&target_iter->val->dhkey, &msg_from.value.dhkey) ||
             _np_dhkey_equal(&target_iter->val->dhkey, &context->my_node_key->dhkey) )
         {
+            log_debug_msg(LOG_DEBUG, "discarding pheromone request to next hop %s", _np_key_as_str(target_iter->val));
             sll_next(target_iter);
             continue;
         }
@@ -485,7 +488,6 @@ bool _np_out_pheromone(np_state_t* context, np_util_event_t msg_event)
     
     return true;
 }
-
 
 /**
  ** _np_network_append_msg_to_out_queue: host, data, size
@@ -749,7 +751,7 @@ bool _np_out_join(np_state_t* context, const np_util_event_t event)
 
     if(_np_key_cmp(context->my_identity, context->my_node_key) != 0) {
         jrb_my_ident = np_tree_create();
-        np_aaatoken_encode(jrb_my_ident, _np_key_get_token(context->my_identity));
+        np_aaatoken_encode(jrb_my_ident, np_token_factory_get_public_ident_token(_np_key_get_token(context->my_identity)));
         np_tree_insert_str(jrb_data, _NP_URN_IDENTITY_PREFIX, np_treeval_new_tree(jrb_my_ident));
     }
     // 2. set it as body of message
@@ -811,6 +813,7 @@ bool _np_out_handshake(np_state_t* context, const np_util_event_t event)
         if (hs_message->no_of_chunks != 1 || serialize_ok == false)
         {
             log_msg(LOG_ERROR, "HANDSHAKE MESSAGE IS NOT 1024 BYTES IN SIZE! Message will not be send");
+            log_debug(LOG_HANDSHAKE, "HANDSHAKE MESSAGE: no_of_chunks:%"PRIu32", serialize: %"PRIu8, hs_message->no_of_chunks, serialize_ok);
         }
         else
         {

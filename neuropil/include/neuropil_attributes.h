@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2019 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 #ifndef NP_ATTR_H_
@@ -41,8 +41,6 @@ extern "C" {
 
     NP_API_EXPORT
     enum np_data_return np_get_msg_attr_bin(struct np_message * msg, char key[255], struct np_data_conf ** out_data_config, unsigned char ** out_data);
-    //NP_API_EXPORT
-    //enum np_data_return np_get_attr_bin(np_mx_properties * prop, char key[255], struct np_data_conf ** out_data_config, unsigned char ** out_data);
     NP_API_EXPORT
     enum np_data_return np_get_token_attr_bin(struct np_token* ident, char key[255], struct np_data_conf ** out_data_config, unsigned char ** out_data);
 

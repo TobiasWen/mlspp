@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 /**
  .. NOTE::
@@ -13,6 +13,7 @@
 
 #include "neuropil.h"
 
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "util/np_list.h"
 
@@ -112,10 +113,11 @@ int main(int argc, char **argv) {
 	while ( np_ok == np_run(context, 0.1) ) {
 		fprintf(stdout, "try to join bootstrap node\n");
 		if (false == j_key_provided) {
-			snprintf(j_key, 255, "%s:localhost:3333", proto);
+			j_key = calloc(1, 255*sizeof(char));
+			snprintf(j_key, 255, "*:%s:localhost:3333", proto);
 		}
-		np_join(context, j_key);
 
+		np_join(context, j_key);
 		if (true == np_has_joined(context)) {
 			fprintf(stdout, "%s joined network!\n", port);
 			break;
@@ -134,11 +136,11 @@ int main(int argc, char **argv) {
 
 	\code
 	*/
-	np_add_receive_cb(context, "echo", receive_message);
 	struct np_mx_properties msg_props = np_get_mx_properties(context, "echo");
 	msg_props.ackmode = NP_MX_ACK_NONE;
 	msg_props.message_ttl = 20.0;
 	np_set_mx_properties(ac, "echo", msg_props);
+	np_add_receive_cb(context, "echo", receive_message);
 	/**
 	\endcode
 	*/
@@ -183,7 +185,7 @@ int main(int argc, char **argv) {
 			log_msg(LOG_INFO, "SENDING:  \"%s\"", s_out);
 
 			// Send our message
-			np_send(context, "echo", (uint8_t*) s_out, strlen(s_out) );
+			np_send(context, "echo", s_out, strlen(s_out) );
 			free(s_out);
 		}
 		np_run(context, 0.12);

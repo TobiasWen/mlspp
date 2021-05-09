@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2019 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 
@@ -310,7 +310,7 @@ void np_msgproperty_register(np_msgproperty_t* msg_property)
             np_unref_obj(np_key_t, my_property_key_tx, "_np_keycache_find_or_create");
             log_debug_msg(LOG_DEBUG, "register handler: %s", _np_key_as_str(my_property_key_tx));
         }
-    }            
+    }
 }
 
 np_dhkey_t _np_msgproperty_dhkey(np_msg_mode_type mode_type, const char* subject) 
@@ -990,7 +990,7 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
     else {
         memset(dest->reply_subject, 0, sizeof(dest->reply_subject));
     }
-    
+
     // ackmode conversion
     switch (src->ack_mode)
     {
@@ -1012,7 +1012,7 @@ void np_msgproperty4user(struct np_mx_properties* dest, np_msgproperty_t* src)
         }
         else {
             dest->cache_policy = NP_MX_FIFO_PURGE;
-        }			
+        }
     }
     else {
         if (FLAG_CMP(src->cache_policy, OVERFLOW_REJECT)) {
@@ -1046,7 +1046,7 @@ void np_msgproperty_from_user(np_state_t* context, np_msgproperty_t* dest, struc
     }
     if (src->max_retry > 0) {
         dest->retry = src->max_retry;
-    }    
+    }
 
     if (src->cache_size > 0) {
         dest->cache_size = src->cache_size;
@@ -1339,6 +1339,7 @@ void __np_property_check(np_util_statemachine_t* statemachine, const np_util_eve
     {
         if ( FLAG_CMP(property->mode_type, OUTBOUND ) ) {
             _np_msgproperty_cleanup_sender_cache(property);
+            __np_msgproperty_redeliver_messages(property);
         }
 
         if ( FLAG_CMP(property->mode_type, INBOUND ) ) {
@@ -1576,7 +1577,7 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding sending intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_sender(my_property_key, intent_token);
-        np_unref_obj(np_aaatoken_t, old_token, "send_tokens");
+        np_unref_obj(np_aaatoken_t, old_token, ref_aaatoken_local_mx_tokens);
 
         // check if some messages are left in the cache
         _np_msgproperty_check_receiver_msgcache(real_prop, _np_aaatoken_get_issuer(intent_token));
@@ -1588,7 +1589,7 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
     {
         log_msg(LOG_INFO, "adding receiver intent %s for subject %s", intent_token->uuid, real_prop->msg_subject);
         np_aaatoken_t* old_token = _np_intent_add_receiver(my_property_key, intent_token);
-        np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");
+        np_unref_obj(np_aaatoken_t, old_token, ref_aaatoken_local_mx_tokens);
 
         // check if some messages are left in the cache
         _np_msgproperty_check_sender_msgcache(real_prop);

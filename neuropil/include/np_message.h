@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #ifndef _NP_MESSAGE_H_
 #define _NP_MESSAGE_H_
@@ -48,6 +48,7 @@ struct np_message_s
     np_messagepart_t* bin_static;
 
     enum np_message_submit_type submit_type;
+    np_aaatoken_t * decryption_token;
 } NP_API_INTERN;
 
 

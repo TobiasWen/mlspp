@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 #ifndef _NP_NETWORK_H_
@@ -90,7 +90,7 @@ struct np_network_s
 } NP_API_INTERN;
 
 _NP_GENERATE_MEMORY_PROTOTYPES(np_network_t);
- 
+
 // parse protocol string of the form "tcp4://..." and return the correct @see socket_type
 NP_API_INTERN
 enum socket_type _np_network_parse_protocol_string (const char* protocol_str);

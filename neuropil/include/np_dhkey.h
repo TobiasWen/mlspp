@@ -1,12 +1,13 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 #ifndef _NP_DHKEY_H_
 #define _NP_DHKEY_H_
 
 #include "np_types.h"
+#include "util/np_list.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +19,9 @@ extern "C" {
 		uint32_t t[8];
 	} NP_PACKED;
 
+NP_SLL_GENERATE_PROTOTYPES(np_dhkey_t);
+
+static const np_dhkey_t dhkey_zero = {0};
 /* key_comp: k1, k2
  * returns > 0 if k1>k2, < 0 if k1<k2, and 0 if k1==k2
  */

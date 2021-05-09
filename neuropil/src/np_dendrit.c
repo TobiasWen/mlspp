@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <arpa/inet.h>
 #include <assert.h>
@@ -17,12 +17,16 @@
 
 #include "sodium.h"
 #include "event/ev.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "msgpack/cmp.h"
 
 #include "np_dendrit.h"
 
 #include "np_statistics.h"
 #include "np_axon.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_legacy.h"
 #include "np_aaatoken.h"
@@ -231,6 +235,10 @@ bool _np_in_callback_wrapper(np_state_t* context, np_util_event_t msg_event)
     {
         log_msg(LOG_INFO, "decrypting message(%s/%s) from sender %s", msg_prop->msg_subject, msg_in->uuid, sender_token->issuer);
         ret = _np_message_decrypt_payload(msg_in, sender_token);
+        if(ret && msg_in->decryption_token == NULL){
+            np_ref_obj(np_aaatoken_t, sender_token,"np_message_t.decryption_token");
+            msg_in->decryption_token = sender_token;
+        }
         np_unref_obj(np_aaatoken_t, sender_token,"_np_intent_get_sender_token"); // _np_aaatoken_get_sender_token
     }
 
@@ -371,8 +379,8 @@ bool _np_in_join(np_state_t* context, np_util_event_t msg_event)
         authn_event.target_dhkey = msg_event.target_dhkey;
         authn_event.user_data = join_ident_token;
     }
-    
-    join_node_key = _np_keycache_find(context, join_node_dhkey);
+
+        join_node_key = _np_keycache_find(context, join_node_dhkey);
     if (join_node_key == NULL) 
     {
         // no handshake before join ? exit join protocol ...
@@ -569,7 +577,7 @@ bool _np_in_pheromone(np_state_t* context, np_util_event_t msg_event)
         double _now = np_time_now();
         while (_delay < _now) {
             _np_neuropil_bloom_age_decrement(_scent);
-            _delay += NP_PI / 100;
+            _delay += NP_PI / 314;
         }
 
         float _in_age = _np_neuropil_bloom_intersect_age(_scent, _scent);
@@ -608,7 +616,7 @@ bool _np_in_pheromone(np_state_t* context, np_util_event_t msg_event)
         }
 
         log_msg(LOG_DEBUG, "update of pheromone trail: age in : %f, but have age : %f / %d", _pheromone._pos, _in_age, _old_age);
-        forward_pheromone_update = _np_pheromone_inhale(context, _pheromone);
+        forward_pheromone_update |= _np_pheromone_inhale(context, _pheromone);
         
         _np_bloom_free(_scent);
     }

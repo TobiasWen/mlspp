@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 #include <errno.h>
@@ -15,11 +15,14 @@
 
 #include "neuropil.h"
 #include "neuropil_data.h"
+#include "np_data.h"
 #include "neuropil_attributes.h"
+#include "np_attributes.h"
 
 
 #include "core/np_comp_msgproperty.h"
 #include "core/np_comp_node.h"
+#include "core/np_comp_intent.h"
 #include "util/np_event.h"
 
 
@@ -32,6 +35,7 @@
 #include "np_key.h"
 #include "np_keycache.h"
 #include "np_legacy.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_memory.h"
 #include "np_message.h"
@@ -52,7 +56,7 @@
 
 static const char *error_strings[] = {
     "",
-    "unknown error",
+    "unknown error cause",
     "operation is not implemented",
     "could not init network",
     "argument is invalid",
@@ -120,6 +124,15 @@ np_context* np_new_context(struct np_settings * settings_in)
         log_msg(LOG_ERROR, "neuropil_init: could not init crypto library");
         status = np_startup;
     }
+    else if (_np_statistics_init(context) == false)
+    {
+        log_msg(LOG_ERROR, "neuropil_init: could not init statistics");
+        status = np_startup;
+    }
+    else if (_np_threads_init(context) == false) {
+        log_msg(LOG_ERROR, "neuropil_init: could not init threading mutexes");
+        status = np_startup;
+    }
     else if (_np_event_init(context) == false)
     {
         log_msg(LOG_ERROR, "neuropil_init: could not init event system");
@@ -128,10 +141,6 @@ np_context* np_new_context(struct np_settings * settings_in)
     else if (_np_log_init(context, settings->log_file, settings->log_level) == false) {
         log_msg(LOG_ERROR, "neuropil_init: could not init logging");
         status = np_startup;       
-    }
-    else if (_np_threads_init(context) == false) {
-        log_msg(LOG_ERROR, "neuropil_init: could not init threading mutexes");
-        status = np_startup;
     }
     else if (_np_memory_init(context) == false) {
         log_msg(LOG_ERROR, "neuropil_init: could not init memory");
@@ -149,7 +158,7 @@ np_context* np_new_context(struct np_settings * settings_in)
     }
     else if (_np_keycache_init(context) == false)
     {
-        log_msg(LOG_ERROR, "neuropil_init: could not init keycache");
+        log_msg(LOG_ERROR, "neuropil_init: _np_keycache_init failed");
         status = np_startup;
     }
     else if (_np_msgproperty_init(context) == false)
@@ -282,16 +291,16 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
             {
                 log_msg(LOG_ERROR, "neuropil_init: _np_bootstrap_init failed: %s", strerror(errno));
                 ret = np_startup;
-            }				                    
-            else if (_np_statistics_init(context) == false) 
+            }
+            else if (!_np_statistics_enable(context))
             {
-                log_msg(LOG_ERROR, "neuropil_init: could not init statistics");
+                log_msg(LOG_ERROR, "neuropil_init: could not enable statistics");
                 ret = np_startup;
             }
-            else 
+            else
             {
                 _np_shutdown_init(context);
-                np_threads_start_workers(context, context->settings->n_threads);                
+                np_threads_start_workers(context, context->settings->n_threads);
                 TSP_SET(context->status, np_stopped);
 
                 log_msg(LOG_INFO, "neuropil successfully initialized: id:   %s", _np_key_as_str(context->my_identity));
@@ -299,8 +308,7 @@ enum np_return _np_listen_safe(np_context* ac, char* protocol, char* host, uint1
                 _np_log_fflush(context, true);
             }
         }
-        
-        if (ret != np_ok) 
+        if (ret != np_ok)
         {
             TSP_SET(context->status, np_error);
         }
@@ -402,26 +410,22 @@ enum np_return np_token_fingerprint(np_context* ac, struct np_token identity, bo
 }
 
 enum np_return np_use_identity(np_context* ac, struct np_token identity) {
-    np_ctx_cast(ac); 
+    np_ctx_cast(ac);
 
     TSP_GET(enum np_status, context->status, state);
     if (state == np_running) return np_invalid_operation;
 
     log_debug_msg(LOG_AAATOKEN, "importing ident token %s", identity.uuid);
 
-    enum np_return ret = np_ok;
-
     np_ident_private_token_t* imported_token = np_token_factory_new_identity_token(ac,  identity.expires_at, &identity.secret_key);
-    
+
     np_user4aaatoken(imported_token, &identity);
     _np_aaatoken_set_signature(imported_token, NULL);
 
     _np_set_identity(context, imported_token);
     _np_aaatoken_update_attributes_signature(imported_token);
-    char tmp [65]={0};
-    np_dhkey_t imported_token_dhkey = np_aaatoken_get_fingerprint(imported_token, false);
     log_msg(LOG_INFO, "neuropil successfully initialized: id:   %s", _np_key_as_str(context->my_identity));
-    return ret;
+    return np_ok;
 }
 
 enum np_return np_get_address(np_context* ac, char* address, uint32_t max) {
@@ -479,27 +483,22 @@ bool np_has_receiver_for(np_context*ac, const char * subject)
     sll_free(np_aaatoken_ptr, receiver_list);
     np_unref_obj(np_key_t, prop_key, "_np_keycache_find");
 
-    // if (_np_route_my_key_has_connection(context)) {
-    // ret = true;
-    // }
     return ret;
 }
 
 enum np_return np_join(np_context* ac, const char* address) 
-{  
+{
+  enum np_return ret = np_ok;
+  np_ctx_cast(ac);
+  TSP_GET(enum np_status,context->status,context_status);
   if (address == NULL)             return np_invalid_argument;
   if (strnlen(address,500) <=  10) return np_invalid_argument;
   if (strnlen(address,500) >= 500) return np_invalid_argument;
-  
+  if (context_status != np_running) return np_invalid_operation;
   // char *nts = memchr(address,'\0', strnlen(address, 500));
   // if (nts == NULL) return np_invalid_argument;
-  
-  enum np_return ret = np_ok;
-  np_ctx_cast(ac);
-  
   char* safe_address = strndup(address, 500);
   np_send_join(context, safe_address);
-  
   free(safe_address);
   return ret;
 }
@@ -554,7 +553,7 @@ enum np_return np_send_to(np_context* ac, const char* subject, const unsigned ch
     np_util_event_t send_event = { .type=(evt_internal | evt_message), .context=ac, .user_data=msg_out, .target_dhkey=target_dhkey };
     // _np_keycache_handle_event(context, subject_dhkey, send_event, false);
 
-  if(!np_jobqueue_submit_event(context, NP_PI, subject_dhkey, send_event, "event: userspace message delivery request")){
+    if(!np_jobqueue_submit_event(context, 0.0, subject_dhkey, send_event, "event: userspace message delivery request")){
         log_msg(LOG_WARN, "rejecting possible sending of message, please check jobqueue settings!");
     }
 
@@ -573,12 +572,16 @@ bool __np_receive_callback_converter(np_context* ac, const np_message_t* const m
         strncpy(message.uuid, msg->uuid, NP_UUID_BYTES-1);
         np_get_id(&message.subject, _np_message_get_subject(msg), strlen(_np_message_get_subject(msg)));
 
-        memcpy(&message.from, _np_message_get_sender(msg), NP_FINGERPRINT_BYTES);
+        ASSERT(msg->decryption_token != NULL,"The decryption token should never be empty in this stage");
+        np_dhkey_t _t ;
+        np_str_id(&_t,msg->decryption_token->issuer);
+        memcpy(&message.from, &_t, NP_FINGERPRINT_BYTES);
 
         message.received_at = np_time_now(); // todo get from network
         //message.send_at = msg.             // todo get from msg
         message.data = userdata->val.value.bin;
         message.data_length = userdata->val.size;
+
 
         np_tree_elem_t* msg_attributes = np_tree_find_str(body, NP_SERIALISATION_ATTRIBUTES);
         if(msg_attributes == NULL){
@@ -678,6 +681,9 @@ enum np_return np_run(np_context* ac, double duration) {
         ret = np_listen(ac, _np_network_get_protocol_string(context, PASSIVE | IPv4), "localhost", 31415);
     }
 
+    TSP_GET(enum np_status, context->status, context_status);
+    if (context_status == np_shutdown) ret = np_invalid_operation;
+
     if(ret == np_ok) 
     {
         TSP_SET(context->status, np_running);
@@ -719,7 +725,7 @@ char * np_id_str(char str[65], const np_id id)
     return str;
 }
 
-void np_str_id(np_id (*id), const char str[64])
+void np_str_id(np_id (*id), const char str[65])
 {
     // TODO: this is dangerous, encoding could be different between systems,
     // encoding has to be send over the wire to be sure ...

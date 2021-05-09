@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2019 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 #ifndef NP_DATA_H_
@@ -73,9 +73,6 @@ extern "C" {
     NP_API_EXPORT
     enum np_data_return np_get_data(np_datablock_t * block, char key[255], struct np_data_conf * out_data_config, np_data_value * out_data);
 
-    // Internal methods
-    NP_API_PROTEC
-    enum np_data_return np_get_data_size(np_datablock_t * block, size_t * out_block_size);
     NP_API_EXPORT
     /**
      * @brief merges src datablock into dest datablock. overwrites existing keys

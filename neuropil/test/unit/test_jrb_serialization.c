@@ -1,12 +1,13 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 #include <criterion/criterion.h>
 #include <criterion/logging.h>
 #include "event/ev.h"
 
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "util/np_treeval.h"
 #include "util/np_tree.h"
@@ -18,7 +19,11 @@
 #include "np_jobqueue.h"
 #include "np_serialization.h"
 
-#include "../src/msgpack/cmp.c"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include "msgpack/cmp.c"
+
 #include "../src/np_util.c"
 
 #include "../test_macros.c"

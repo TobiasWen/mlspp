@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // Based upon http://stackoverflow.com/a/1234738
 
@@ -54,11 +54,11 @@ np_cache_destroy(np_state_t* context, np_simple_cache_table_t* cache)
             sll_next(iter_bucket_item);
         }
         sll_clear(np_cache_item_t, &cache->_bucket[i]);
-        np_spinlock_destroy(cache->_bucket_guard[i]);
+        np_spinlock_destroy(&cache->_bucket_guard[i]);
     }
 
     free(cache->_bucket);
-    free(cache->_bucket_guard);
+    free((void*) cache->_bucket_guard);
 }
 
 bool 

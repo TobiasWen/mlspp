@@ -1,10 +1,15 @@
+..
+  SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+..
+  SPDX-License-Identifier: OSL-3.0
+
 =======
 License
 =======
 
 .. _neuropil_license:
 
-copyright 2016-2020 pi-lar GmbH - all rights reserved
+copyright 2016-2021 pi-lar GmbH - all rights reserved
 
 Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
 
@@ -12,10 +17,10 @@ Licensed under the Open Software License (OSL 3.0), please see LICENSE file for 
 
    <hr width=200>
 
-Contributions
-*************
+3rd party libraries and depenencies
+***********************************
 
-.. _neuropil_contributions:
+.. _neuropil_dependencies:
 
 This library would not be possible without the work of other packages / libraries / snippets
 which are used 'as is' in neuropil
