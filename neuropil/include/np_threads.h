@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #ifndef NP_THREADS_H_
 #define NP_THREADS_H_
@@ -21,6 +21,7 @@
 #include "np_memory.h"
 
 #include "util/np_list.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_types.h"
 #include "np_constants.h"
@@ -97,7 +98,7 @@ static const char* np_thread_type_str[] =  {
 
 /** thread														**/
 struct np_thread_s
-{  
+{
     uint8_t idx;
     size_t id;
     pthread_t thread_id;
@@ -125,7 +126,7 @@ struct np_thread_s
     np_sll_t(char_ptr, has_lock);
 #endif
 
-#ifdef NP_STATISTICS_THREADS 
+#ifdef NP_STATISTICS_THREADS
     np_thread_stats_t *stats;
 #endif
 
@@ -210,7 +211,7 @@ struct timeval NAME##_tv;																					\
 struct timespec* NAME=&NAME##_ts;																			\
                                                                                                             \
 gettimeofday(&NAME##_tv, NULL);																				\
-NAME##_ts.tv_sec = NAME##_tv.tv_sec + MUTEX_WAIT_MAX_SEC - ELAPSED_TIME;													
+NAME##_ts.tv_sec = NAME##_tv.tv_sec + MUTEX_WAIT_MAX_SEC - ELAPSED_TIME;
 
 
 #define __LOCK_ACCESS_W_PREFIX(prefix, obj, lock_type)																						           \
@@ -298,12 +299,12 @@ char* np_threads_print_locks(NP_UNUSED np_state_t* context, bool asOneLine, bool
 
 
 void np_threads_busyness(np_state_t* context, np_thread_t* self, bool is_busy);
-#ifdef NP_STATISTICS_THREADS 
+#ifdef NP_STATISTICS_THREADS
     void np_threads_busyness_statistics(np_state_t* context, np_thread_t* self, double *perc_1, double *perc_5, double *perc_15);
     void np_threads_busyness_stat(np_state_t* context, np_thread_t* self) ;
 #else
-    #define np_threads_busyness_statistics(context,self,perc_1, perc_5, perc_15) 
-    #define np_threads_busyness_stat(context,self) 
+    #define np_threads_busyness_statistics(context,self,perc_1, perc_5, perc_15)
+    #define np_threads_busyness_stat(context,self)
 #endif
 
 

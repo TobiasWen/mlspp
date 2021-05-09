@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 #ifndef NP_STATISTICS_H_
@@ -272,7 +272,7 @@ NP_API_INTERN
 void  _np_statistics_debug_destroy(np_state_t * context);
 NP_API_INTERN
 void _np_statistics_debug_ele_destroy(np_state_t* context, void* item) ;
-#else 
+#else
 	#define _np_statistics_debug_destroy(context) ;
 	#define _np_statistics_debug_ele_destroy(context, item) ;
 #endif

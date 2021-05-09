@@ -1,14 +1,17 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #ifndef	_NP_UTIL_H_
 #define	_NP_UTIL_H_
 
 #include <assert.h>
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "msgpack/cmp.h"
-#include "json/parson.h"
+#include "parson/parson.h"
 
 #include "util/np_tree.h"
 #include "np_threads.h"
@@ -60,7 +63,8 @@ extern "C" {
 #define ASSERT(expression, onfail_msg, ...)												\
 	if (!(expression)) {																\
 			log_debug_msg(LOG_ERROR, onfail_msg, ##__VA_ARGS__);						\
-	}
+	}                                                                                   \
+	assert(expression);
 #endif
 
 #ifndef MAX

@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include "np_types.h"
 #include "np_memory.h"
@@ -264,7 +264,7 @@ sll_return(np_msgproperty_ptr) default_msgproperties(np_state_t* context) {
     __pheromone_update->priority = 0;
     __pheromone_update->ack_mode = ACK_NONE;
     __pheromone_update->retry = 1;
-    __pheromone_update->unique_uuids_check = true;
+    __pheromone_update->unique_uuids_check = false;
     __pheromone_update->cache_policy = FIFO | OVERFLOW_PURGE;
     __pheromone_update->msg_ttl = 5.0;
     __pheromone_update->cache_size = 2;

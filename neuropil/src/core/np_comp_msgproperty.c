@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2019 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 
@@ -1350,6 +1350,7 @@ void __np_property_check(np_util_statemachine_t* statemachine, const np_util_eve
     {
         if ( FLAG_CMP(property->mode_type, OUTBOUND ) ) {
             _np_msgproperty_cleanup_sender_cache(property);
+            __np_msgproperty_redeliver_messages(property);
         }
 
         if ( FLAG_CMP(property->mode_type, INBOUND ) ) {
@@ -1591,8 +1592,7 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
         if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
           np_mls_authorize(context, real_prop->mls_connected->msg_subject);
         }
-
-        np_unref_obj(np_aaatoken_t, old_token, "send_tokens");
+        np_unref_obj(np_aaatoken_t, old_token, ref_aaatoken_local_mx_tokens);
 
         // check if some messages are left in the cache
         _np_msgproperty_check_receiver_msgcache(real_prop, _np_aaatoken_get_issuer(intent_token));
@@ -1607,7 +1607,7 @@ void __np_property_handle_intent(np_util_statemachine_t* statemachine, const np_
         if(IS_AUTHORIZED(intent_token->state) && real_prop->encryption_algorithm == MLS_ENCRYPTION) {
           np_mls_authorize(context, real_prop->mls_connected->msg_subject);
         }
-        np_unref_obj(np_aaatoken_t, old_token, "recv_tokens");
+        np_unref_obj(np_aaatoken_t, old_token, ref_aaatoken_local_mx_tokens);
 
         // check if some messages are left in the cache
         _np_msgproperty_check_sender_msgcache(real_prop);

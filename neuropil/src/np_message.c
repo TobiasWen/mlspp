@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,11 +13,15 @@
 
 #include "event/ev.h"
 #include "sodium.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "msgpack/cmp.h"
 #include "tree/tree.h"
 
 #include "np_message.h"
 
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_legacy.h"
 #include "np_aaatoken.h"
@@ -74,6 +78,7 @@ void _np_message_t_new(np_state_t *context, NP_UNUSED uint8_t type, NP_UNUSED si
     msg_tmp->bin_static = NULL;
 
     msg_tmp->submit_type = np_message_submit_type_ROUTE;
+    msg_tmp->decryption_token = NULL;
 }
 
 /*
@@ -98,7 +103,9 @@ void _np_message_t_del(np_state_t *context, NP_UNUSED uint8_t type, NP_UNUSED si
     log_debug_msg(LOG_MEMORY | LOG_DEBUG, "msg (%s) freeing memory", msg->uuid);
 
     np_unref_obj(np_msgproperty_t, msg->msg_property, ref_message_msg_property);
-    
+
+    np_unref_obj(np_aaatoken_t, msg->decryption_token,"np_message_t.decryption_token");
+
     np_tree_free( msg->header);
     np_tree_free( msg->instructions);
     np_tree_free( msg->body);
@@ -150,11 +157,13 @@ void _np_message_calculate_chunking(np_message_t* msg)
     uint32_t chunks =
             ((uint32_t) (payload_size) / (MSG_CHUNK_SIZE_1024 - fixed_size)) + 1;
 
-    log_debug(LOG_SERIALIZATION, "Message has payload of %"PRIu32"(%"PRIu32"/%"PRIu32") and %"PRIu32"(%"PRIu32"/%"PRIu32") header data, so we send %"PRIu32" chunks for %"PRIu32" bytes"
-        , payload_size, body_size, footer_size, 
-        fixed_size, header_size, instructions_size, 
-        chunks, 
-        (payload_size+ fixed_size)*chunks);
+    log_debug(LOG_SERIALIZATION, "Message has payload of %"PRIu32"(%"PRIu32"/%"PRIu32") and %"PRIu32"(%"PRIu32"/%"PRIu32") header data (%"PRIu32" bytes), so we send %"PRIu32" chunks for %"PRIu32" bytes"
+        , payload_size, body_size, footer_size,
+        fixed_size, header_size, instructions_size,
+        payload_size + fixed_size,
+        chunks,
+        (payload_size+ fixed_size)*chunks
+    );
 
 
     msg->no_of_chunks = chunks;
@@ -176,7 +185,7 @@ double _np_message_get_expiery(const np_message_t* const self)
         // this is not possible and may indecate
         // a faulty date/time setup on the client
         log_msg(LOG_WARN, "Detected faulty timestamp for message. Setting to now. (timestamp: %f, now: %f, diff: %f sec)", tstamp, now, tstamp - now);
-        msg_tstamp.value.d = tstamp = now;
+        // msg_tstamp.value.d = tstamp = now;
     }
     ret = (tstamp + msg_ttl.value.d);	
 
@@ -275,7 +284,7 @@ bool _np_message_serialize_chunked(np_message_t* msg)
     // TODO: optimize, more streaming
     // target is an array of 1024 byte size target buffers
     cmp_ctx_t cmp;
-    uint16_t i = 0;
+    uint32_t i = 0;
 
     cmp_ctx_t cmp_header;
     void* bin_header = NULL;
@@ -372,12 +381,12 @@ bool _np_message_serialize_chunked(np_message_t* msg)
         }
 
         // log_debug_msg(LOG_SERIALIZATION | LOG_DEBUG, "before body: space left in chunk: %hd / %hd",
-        // 		(max_chunk_size - current_chunk_size), current_chunk_size );
+        // (max_chunk_size - current_chunk_size), current_chunk_size );
 
         if (10 < (max_chunk_size - current_chunk_size) && false == body_done)
         {
-            uint16_t left_body_size = msg->body->byte_size - (bin_body_ptr - bin_body);
-            uint16_t possible_size = max_chunk_size - 10 - current_chunk_size;
+            uint32_t left_body_size = msg->body->byte_size - (bin_body_ptr - bin_body);
+            uint32_t possible_size = max_chunk_size - 10 - current_chunk_size;
             if (possible_size >= left_body_size)
             {
                 // log_debug_msg(LOG_SERIALIZATION | LOG_DEBUG, "writing last body part (size %hd)", left_body_size);
@@ -420,8 +429,8 @@ bool _np_message_serialize_chunked(np_message_t* msg)
 
         if (5 < (max_chunk_size - current_chunk_size) && false == footer_done)
         {
-            uint16_t left_footer_size = msg->footer->byte_size - (bin_footer_ptr - bin_footer);
-            uint16_t possible_size = max_chunk_size - 5 - current_chunk_size;
+            uint32_t left_footer_size = msg->footer->byte_size - (bin_footer_ptr - bin_footer);
+            uint32_t possible_size = max_chunk_size - 5 - current_chunk_size;
             if (possible_size >= left_footer_size)
             {
                 // log_debug_msg(LOG_SERIALIZATION | LOG_DEBUG, "writing last footer part (size %hd)", left_footer_size);

@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include "../include/np_settings.h"
 #include "test_macros.c"
@@ -21,6 +21,7 @@
 #include "unit/test_list_impl.c"
 // #include "unit/test_memory.c"  // TODO: fixme
 #include "unit/test_message.c"
+#include "unit/test_minhash.c"
 #include "unit/test_neuropil_h.c"
 #include "unit/test_node.c"
 #include "unit/test_route.c"

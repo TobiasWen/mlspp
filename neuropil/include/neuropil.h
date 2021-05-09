@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 /* neuropil API v2 */
@@ -8,18 +8,20 @@
 #ifndef _NP_INTERFACE_H_
 #define _NP_INTERFACE_H_
 
+#ifndef _NP_DO_NOT_USE_DEFAULT_H_FILES
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define NEUROPIL_RELEASE	"neuropil_0.9.8"
+#define NEUROPIL_RELEASE	"neuropil_0.9.9"
 
-#define NEUROPIL_COPYRIGHT	"copyright (C) 2016-2020 neuropil.org, Cologne, Germany"
-#define NEUROPIL_TRADEMARK  "trademark (TM) 2016-2020 pi-lar GmbH, Cologne, Germany"
+#define NEUROPIL_COPYRIGHT	"copyright (C) 2016-2021 neuropil.org, Cologne, Germany"
+#define NEUROPIL_TRADEMARK  "trademark (TM) 2016-2021 pi-lar GmbH, Cologne, Germany"
 
 
 /* just in case NULL is not defined */
@@ -131,7 +133,7 @@ extern "C" {
     struct np_token {
         char uuid[NP_UUID_BYTES];
         char subject[255]; // todo: has to be np_id
-        char issuer[65]; // todo: has to be np_id
+        np_id issuer;
         char realm[255]; // todo: has to be np_id
         char audience[255]; // todo: has to be np_id
         double  issued_at, not_before, expires_at;

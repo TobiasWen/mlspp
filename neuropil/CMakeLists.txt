@@ -70,7 +70,7 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-target_link_libraries(${CURRENT_LIB_NAME} mlspp-c sodium pthread m)
+target_link_libraries(neuropil sodium)
 
 target_include_directories(${CURRENT_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_CURRENT_SOURCE_DIR}/framework" "${CMAKE_SOURCE_DIR}/wrapper/include")
 target_include_directories(${CURRENT_LIB_NAME} PUBLIC )

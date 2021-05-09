@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <stdint.h>
 #include <float.h>
@@ -28,6 +28,7 @@
 #include "util/np_event.h"
 #include "core/np_comp_msgproperty.h"
 #include "np_message.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "util/np_list.h"
 #include "np_threads.h"

@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 #include <assert.h>
@@ -22,6 +22,7 @@
 #include "np_dhkey.h"
 #include "np_legacy.h"
 #include "util/np_list.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_network.h"
 #include "np_node.h"
@@ -53,6 +54,9 @@ bool _np_keycache_init(np_state_t* context)
         CHECK_MALLOC(_module->__key_cache);
        _np_dhkey_assign(&_module->_check_state_iterator, &dhkey_zero);
         RB_INIT(_module->__key_cache);
+        np_dhkey_t _null = {0};
+        _np_dhkey_assign(&np_module(keycache)->_check_state_iterator, &_null);
+
         ret = true;
     }
     return ret;
@@ -212,49 +216,52 @@ bool _np_keycache_check_state(np_state_t* context, NP_UNUSED np_util_event_t arg
     uint16_t i = 0;
     bool process_state_check = false;
 
-    sll_init_full(np_key_ptr, tmp_to_transition);
+    sll_init_full(np_dhkey_t, tmp_to_transition);
+
     _LOCK_MODULE(np_keycache_t)
     {
         RB_FOREACH(iter, st_keycache_s, np_module(keycache)->__key_cache)
         {
             if (_np_dhkey_equal(&dhkey_zero, &np_module(keycache)->_check_state_iterator) )
-                np_module(keycache)->_check_state_iterator = iter->dhkey;
+                _np_dhkey_assign(&np_module(keycache)->_check_state_iterator, &iter->dhkey);
 
             // fast forward to dhkey and then begin to execute state changes
             if ( (_np_dhkey_equal(&iter->dhkey, &np_module(keycache)->_check_state_iterator) || true == process_state_check) &&
-                 i < _NP_KEYCACHE_ITERATION_STEPS)
+                 i < _NP_KEYCACHE_ITERATION_STEPS )
             {
                 log_debug(LOG_KEYCACHE, "iteration on key %s", _np_key_as_str(iter));
                 process_state_check = true;
                 // log_debug_msg(LOG_DEBUG, "start: void _np_keycache_check_state(...) { %p", iter);
-                np_ref_obj(context, iter, FUNC, "temporary sll to avoid modulle/key lock dependency");
-                sll_append(np_key_ptr, tmp_to_transition, iter);
+                sll_append(np_dhkey_t, tmp_to_transition, iter->dhkey);
 
                 // The following debug message should only be active if we want to debug the state machine
                 // it does not respact the locking mechanisms
                 //log_debug(LOG_KEYCACHE, "sm %p %d %s", iter, iter->type, iter->sm._state_table[iter->sm._current_state]->_state_name);
                 i++;
             }
+
             // iteration steps interval reached, store dhkey for next iteration
             if (i >= _NP_KEYCACHE_ITERATION_STEPS)
             {
                 log_debug(LOG_KEYCACHE, "stopping iteration at key %s", _np_key_as_str(iter));
-                np_module(keycache)->_check_state_iterator = iter->dhkey;
+                _np_dhkey_assign(&np_module(keycache)->_check_state_iterator, &iter->dhkey);
                 break;
             }
         }
         // end of list interval exit - reset start dhkey to zero
-        if (i < _NP_KEYCACHE_ITERATION_STEPS) _np_dhkey_assign(&np_module(keycache)->_check_state_iterator, &dhkey_zero);
-    }
-
-    sll_iterator(np_key_ptr) transition_iter = sll_first(tmp_to_transition);
-    while(transition_iter!=NULL){
-        _LOCK_ACCESS(&transition_iter->val->key_lock){
-            np_util_statemachine_invoke_auto_transitions(&transition_iter->val->sm);
-        }
-        sll_next(transition_iter);
+        if (i < _NP_KEYCACHE_ITERATION_STEPS)
+            _np_dhkey_assign(&np_module(keycache)->_check_state_iterator, &dhkey_zero);
     }
     np_key_unref_list(tmp_to_transition,FUNC);
+
+    sll_iterator(np_dhkey_t) transition_iter = sll_first(tmp_to_transition);
+    while(transition_iter!=NULL)
+    {
+        np_util_event_t noop_event = { .type = evt_noop, .user_data=NULL };
+        _np_keycache_handle_event(context, transition_iter->val, noop_event, true);
+        sll_next(transition_iter);
+    }
+    sll_free(np_dhkey_t, tmp_to_transition);
 
     return true;
 }
@@ -519,6 +526,4 @@ void _np_keycache_sort_keys_kd (np_sll_t(np_key_ptr, list_of_keys), const np_dhk
 #endif
 */
 }
-
-
 

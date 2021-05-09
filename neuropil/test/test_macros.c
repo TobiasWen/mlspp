@@ -1,3 +1,8 @@
+//
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
+//
+
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
@@ -74,6 +79,8 @@ np_state_t* _np_test_ctx(char* name, char* desc, char* porttype, int port) {
     cr_expect(np_stopped == np_get_status(ret), "np_get_status returned %"PRIu8, np_get_status(ret) );
     cr_expect(np_ok      == np_listen(ret, porttype, "localhost", port));
     cr_expect(np_stopped == np_get_status(ret), "np_get_status returned %"PRIi8, np_get_status(ret) );
+    cr_expect(np_ok      == np_run(ret, 0));
+    cr_expect(np_running == np_get_status(ret), "np_get_status returned %"PRIi8, np_get_status(ret) );
 
     return ret;
 }

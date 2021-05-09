@@ -11,6 +11,10 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
+# 
+# SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+# SPDX-License-Identifier: OSL-3.0
+# 
 
 import sys
 import os
@@ -58,7 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'neuropil'
-copyright = u'2016-2020, pi-lar GmbH'
+copyright = u'2016-2021, pi-lar GmbH'
 author = u'pi-lar GmbH'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -145,7 +149,7 @@ html_context = {
     "display_gitlab": True, # Integrate Gitlab
     "gitlab_user": "pi-lar", # Username
     "gitlab_repo": "neuropil", # Repo name
-    "gitlab_version": "master", # Version
+    "gitlab_version": "main", # Version
     "conf_py_path": "/doc/source/", # Path in the checkout to the docs root
 }
 

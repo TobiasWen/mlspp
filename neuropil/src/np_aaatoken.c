@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <assert.h>
 #include <errno.h>
@@ -19,6 +19,7 @@
 #include "util/np_event.h"
 
 #include "dtime.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_legacy.h"
 #include "util/np_tree.h"
@@ -34,6 +35,7 @@
 #include "np_constants.h"
 #include "neuropil.h"
 #include "neuropil_data.h"
+#include "np_data.h"
 #include "np_serialization.h"
 
 _NP_GENERATE_MEMORY_IMPLEMENTATION(np_aaatoken_t)
@@ -256,19 +258,19 @@ np_dhkey_t np_aaatoken_get_fingerprint(np_aaatoken_t* self, bool include_extensi
     np_dhkey_t ret;
 
 	// build a hash to find a place in the dhkey table, not for signing !
-	unsigned char* hash_attributes = _np_aaatoken_get_hash(self);
-	ASSERT(hash_attributes != NULL, "cannot sign NULL hash");
+	unsigned char* hash_fields = _np_aaatoken_get_hash(self);
+	ASSERT(hash_fields != NULL, "cannot sign NULL hash");
 
 	unsigned char hash[crypto_generichash_BYTES] = { 0 };
 	crypto_generichash_state gh_state;
 	crypto_generichash_init(&gh_state, NULL, 0, crypto_generichash_BYTES);
-	crypto_generichash_update(&gh_state, hash_attributes, crypto_generichash_BYTES);
+	crypto_generichash_update(&gh_state, hash_fields, crypto_generichash_BYTES);
 	crypto_generichash_update(&gh_state, self->signature, crypto_sign_BYTES);
 
 	if (true == include_extensions) {
-		unsigned char* hash = __np_aaatoken_get_attributes_hash(self);
-		crypto_generichash_update(&gh_state, hash, crypto_generichash_BYTES);
-		free(hash);
+		unsigned char* hash_attr = __np_aaatoken_get_attributes_hash(self);
+		crypto_generichash_update(&gh_state, hash_attr, crypto_generichash_BYTES);
+		free(hash_attr);
 	}
 	// TODO: generichash_final already produces the dhkey value, just memcpy it.
 	crypto_generichash_final(&gh_state, hash, crypto_generichash_BYTES);
@@ -277,7 +279,7 @@ np_dhkey_t np_aaatoken_get_fingerprint(np_aaatoken_t* self, bool include_extensi
 	sodium_bin2hex(key, crypto_generichash_BYTES * 2 + 1, hash, crypto_generichash_BYTES);
 	ret = np_dhkey_create_from_hash(key);
 
-	free(hash_attributes);
+	free(hash_fields);
     // }
     return ret;
 }
@@ -762,10 +764,18 @@ struct np_token* np_aaatoken4user(struct np_token* dest, np_aaatoken_t* src) {
     strncpy(dest->uuid, src->uuid, NP_UUID_BYTES);
 
     // TODO: convert to np_id
-    strncpy(dest->issuer, src->issuer, 65);
+    //strncpy(dest->issuer, src->issuer, 65);
     strncpy(dest->realm, src->realm, 255);
     strncpy(dest->audience, src->audience, 255);
     strncpy(dest->subject, src->subject, 255);
+
+    if(src->issuer[0] != NULL){
+        np_str_id(&dest->issuer, src->issuer);
+        char tst[65] = {0};
+        np_id_str(tst, &dest->issuer);
+    }
+    else
+        memcpy(&dest->issuer, &dhkey_zero,sizeof(np_dhkey_t));
 
     assert(crypto_sign_PUBLICKEYBYTES == NP_PUBLIC_KEY_BYTES);
     memcpy(dest->public_key, src->crypto.ed25519_public_key, NP_PUBLIC_KEY_BYTES);
@@ -795,8 +805,14 @@ np_aaatoken_t* np_user4aaatoken(np_aaatoken_t* dest, struct np_token* src) {
 
     strncpy(dest->uuid, src->uuid, NP_UUID_BYTES);
 
+    if(memcmp(&src->issuer, &dhkey_zero,sizeof(np_dhkey_t)) == 0){
+        dest->issuer[0] = NULL;
+    } else {
+        np_id_str(dest->issuer, &src->issuer);
+    }
+
     //TODO: convert to np_id
-    strncpy(dest->issuer, src->issuer, 65);
+    //strncpy(dest->issuer, src->issuer, 65);
     strncpy(dest->realm, src->realm, 255);
     strncpy(dest->audience, src->audience, 255);
     strncpy(dest->subject, src->subject, 255);

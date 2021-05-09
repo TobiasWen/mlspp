@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 #include <assert.h>
 #include <errno.h>
@@ -24,6 +24,7 @@
 #include "np_keycache.h"
 #include "np_legacy.h"
 #include "util/np_list.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_memory.h"
 #include "np_network.h"
@@ -35,7 +36,7 @@
 #include "util/np_treeval.h"
 #include "np_util.h"
 
-#include "json/parson.h"
+#include "parson/parson.h"
 #include "../framework/http/htparse.h"
 #include "../framework/http/htparse.c"
 #include "../framework/sysinfo/np_sysinfo.h"
@@ -574,7 +575,9 @@ void _np_http_accept(struct ev_loop* loop, NP_UNUSED ev_io* ev, NP_UNUSED int ev
             ev_io_init(&new_client->client_watcher_out, _np_http_write_callback,
                 new_client->client_fd, EV_WRITE);
 
+            if (new_client->client_watcher_in.data) free(new_client->client_watcher_in.data);
             new_client->client_watcher_in.data = new_client;
+            if (new_client->client_watcher_out.data) free(new_client->client_watcher_out.data);
             new_client->client_watcher_out.data = new_client;
 
             ev_io_start(EV_A_&new_client->client_watcher_in);
@@ -643,6 +646,8 @@ bool _np_http_init(np_state_t* context, char* domain, char* port)
         EV_P = _np_event_get_loop_http(context);
         ev_io_stop(EV_A_&_module->network->watcher_in);
         ev_io_init(&_module->network->watcher_in, _np_http_accept, _module->network->socket, EV_READ);
+
+        if (_module->network->watcher_in.data) free(_module->network->watcher_in.data);
         _module->network->watcher_in.data = _module;
         ev_io_start(EV_A_&_module->network->watcher_in);
         _np_event_resume_loop_http(context);
@@ -693,9 +698,9 @@ void _np_http_destroy(np_state_t* context)
 
         free(np_module(http)->hooks);
 
-        np_module(http)->network->watcher_in.data = NULL;
         // _np_network_disable(np_module(http)->network);
         np_unref_obj(np_network_t, np_module(http)->network, ref_obj_creation);
+        // np_module(http)->network->watcher_in.data = NULL;
 
         np_module_free(http);
     }

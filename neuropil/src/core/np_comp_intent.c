@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2019 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // original version is based on the chimera project
 
@@ -133,7 +133,7 @@ np_aaatoken_t* _np_intent_add_sender(np_key_t* subject_key, np_aaatoken_t *token
         }
 
         // update #1 key specific data
-        np_ref_obj(np_aaatoken_t, token, "send_tokens");
+        np_ref_obj(np_aaatoken_t, token, ref_aaatoken_local_mx_tokens);
         ret = pll_replace(np_aaatoken_ptr, ledger->send_tokens, token, cmp_aaatoken_replace);
         if (NULL == ret)
         {
@@ -267,7 +267,7 @@ np_aaatoken_t* _np_intent_add_receiver(np_key_t* subject_key, np_aaatoken_t *tok
         }
 
         // update #1 key specific data
-        np_ref_obj(np_aaatoken_t, token, "recv_tokens");
+        np_ref_obj(np_aaatoken_t, token, ref_aaatoken_local_mx_tokens);
         ret = pll_replace(np_aaatoken_ptr, ledger->recv_tokens, token, cmp_aaatoken_replace);
         if (NULL == ret)
         {
@@ -402,7 +402,8 @@ void _np_intent_get_all_sender(np_key_t* subject_key, np_dhkey_t audience, np_sl
             } 
             else
             {
-                log_debug_msg(LOG_DEBUG, "ignoring sender token for issuer %s as it is not in audience \"%s\"", tmp->val->issuer, audience);
+                char buf[65] = {0};
+                log_debug_msg(LOG_DEBUG, "ignoring sender token for issuer %s as it is not in audience \"%s\"", tmp->val->issuer, np_id_str(buf, *(np_id*)&audience));
             }
         }
         pll_next(tmp);
@@ -445,7 +446,8 @@ void _np_intent_get_all_receiver(np_key_t* subject_key, np_dhkey_t audience, np_
                 // and we actually have a receiver node in the list
                 sll_append(np_aaatoken_ptr, result_list, tmp->val);
             } else {
-                log_debug_msg(LOG_DEBUG, "ignoring receiver token for issuer %s as it is not in audience \"%s\"", tmp->val->issuer, audience);
+                char buf[65] = {0};
+                log_debug_msg(LOG_DEBUG, "ignoring receiver token for issuer %s as it is not in audience \"%s\"", tmp->val->issuer, np_id_str(buf, *(np_id*)&audience));
             }
         }
         pll_next(tmp);
@@ -504,7 +506,7 @@ void __np_intent_check(np_util_statemachine_t* statemachine, NP_UNUSED const np_
         {
             log_debug_msg(LOG_DEBUG, "deleting old / invalid sender msg tokens %p", tmp_token);
             pll_remove(np_aaatoken_ptr, ledger->send_tokens, tmp_token, _np_intent_cmp_exact);
-            np_unref_obj(np_aaatoken_t, tmp_token, "send_tokens");
+            np_unref_obj(np_aaatoken_t, tmp_token, ref_aaatoken_local_mx_tokens);
             break;
         }
     }    
@@ -521,7 +523,7 @@ void __np_intent_check(np_util_statemachine_t* statemachine, NP_UNUSED const np_
         {
             log_debug_msg(LOG_DEBUG, "deleting old / invalid receiver msg token %p", tmp_token);
             pll_remove(np_aaatoken_ptr, ledger->recv_tokens, tmp_token, _np_intent_cmp_exact);
-            np_unref_obj(np_aaatoken_t, tmp_token, "recv_tokens");
+            np_unref_obj(np_aaatoken_t, tmp_token, ref_aaatoken_local_mx_tokens);
             break;
         }
     }

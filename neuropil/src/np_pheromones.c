@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2017 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 
 #include "np_pheromones.h"
@@ -9,6 +9,7 @@
 #include "np_constants.h"
 #include "np_dhkey.h"
 #include "np_legacy.h"
+#include "neuropil_log.h"
 #include "np_log.h"
 #include "np_memory.h"
 #include "np_settings.h"
@@ -16,8 +17,6 @@
 
 int8_t np_dhkey_t_sll_compare_type(np_dhkey_t const a, np_dhkey_t const b)
 { return _np_dhkey_cmp(&a, &b); }
-
-NP_SLL_GENERATE_IMPLEMENTATION(np_dhkey_t);
 
 
 typedef struct np_pheromone_entry_s

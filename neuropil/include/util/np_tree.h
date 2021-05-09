@@ -1,6 +1,6 @@
 //
-// neuropil is copyright 2016-2020 by pi-lar GmbH
-// Licensed under the Open Software License (OSL 3.0), please see LICENSE file for details
+// SPDX-FileCopyrightText: 2016-2021 by pi-lar GmbH
+// SPDX-License-Identifier: OSL-3.0
 //
 // Original version taken from chimera project, copyright (C) 2001 James S. Plank
 
@@ -17,6 +17,9 @@ Copyright 2002 Niels Provos <provos@citi.umich.edu>
 #include <stdint.h>
 
 #include "tree/tree.h"
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include "msgpack/cmp.h"
 
 #include "np_types.h"
