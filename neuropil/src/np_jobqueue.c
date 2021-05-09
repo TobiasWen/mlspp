@@ -14,7 +14,7 @@
 #include <inttypes.h>
 #include <math.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "np_legacy.h"
 #include "np_types.h"

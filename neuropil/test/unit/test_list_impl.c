@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "util/np_list.h"
 #include "np_dhkey.h"

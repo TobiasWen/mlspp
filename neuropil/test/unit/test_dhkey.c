@@ -6,7 +6,7 @@
 #include <inttypes.h>
 
 #include "sodium.h"
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "np_dhkey.h"
 #include "np_memory.h"

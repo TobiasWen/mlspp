@@ -10,8 +10,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "msgpack/cmp.h"
-#include "parson/parson.h"
+#include "../ext_tools/msgpack/cmp.h"
+#include "../ext_tools/parson/parson.h"
 
 #include "util/np_tree.h"
 #include "np_threads.h"

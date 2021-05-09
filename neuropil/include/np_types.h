@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "neuropil.h"
 #include "util/np_list.h"

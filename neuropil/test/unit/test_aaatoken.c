@@ -5,7 +5,7 @@
 #include <criterion/criterion.h>
 
 #include "sodium.h"
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "np_legacy.h"
 #include "np_aaatoken.h"

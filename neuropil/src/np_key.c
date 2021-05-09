@@ -14,7 +14,7 @@
 #include "neuropil.h"
 #include "np_legacy.h"
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include "sodium.h"
 
 #include "neuropil_log.h"

@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "neuropil.h"
 

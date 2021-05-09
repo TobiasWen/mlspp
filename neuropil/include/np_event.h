@@ -6,7 +6,7 @@
 #ifndef _NP_EVENT_H_
 #define _NP_EVENT_H_
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include "neuropil.h"
 #include "np_types.h"
 

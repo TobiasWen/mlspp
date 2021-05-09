@@ -20,7 +20,7 @@ Copyright 2002 Niels Provos <provos@citi.umich.edu>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "msgpack/cmp.h"
+#include "../ext_tools/msgpack/cmp.h"
 
 #include "np_types.h"
 #include "util/np_treeval.h"

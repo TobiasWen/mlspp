@@ -183,7 +183,7 @@
 #ifdef EV_H
 # include EV_H
 #else
-# include "event/ev.h"
+# include "../ext_tools/event/ev.h"
 #endif
 
 #if EV_NO_THREADS
@@ -1817,10 +1817,10 @@ struct ev_loop
     ev_tstamp ev_rt_now;
 #define ev_rt_now ((loop)->ev_rt_now)
 #define VAR(name,decl) decl;
-#include "event/ev_vars.h"
+#include "../ext_tools/event/ev_vars.h"
 #undef VAR
 };
-#include "event/ev_wrap.h"
+#include "../ext_tools/event/ev_wrap.h"
 
 static struct ev_loop default_loop_struct;
 EV_API_DECL struct ev_loop *ev_default_loop_ptr = 0; /* needs to be initialised to make it a definition despite extern */
@@ -5089,6 +5089,6 @@ ev_walk(EV_P_ int types, void(*cb)(EV_P_ int type, void *w)) EV_THROW
 #endif
 
 #if EV_MULTIPLICITY
-#include "event/ev_wrap.h"
+#include "../ext_tools/event/ev_wrap.h"
 #endif
 

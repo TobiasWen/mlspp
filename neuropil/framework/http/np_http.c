@@ -36,7 +36,7 @@
 #include "util/np_treeval.h"
 #include "np_util.h"
 
-#include "parson/parson.h"
+#include "../ext_tools/parson/parson.h"
 #include "../framework/http/htparse.h"
 #include "../framework/http/htparse.c"
 #include "../framework/sysinfo/np_sysinfo.h"

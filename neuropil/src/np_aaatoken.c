@@ -10,7 +10,7 @@
 #include <inttypes.h>
 #include <math.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include "sodium.h"
 
 #include "np_aaatoken.h"

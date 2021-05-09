@@ -13,7 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "msgpack/cmp.h"
+#include "../ext_tools/msgpack/cmp.h"
 #include "inttypes.h"
 
 #include "np_serialization.h"

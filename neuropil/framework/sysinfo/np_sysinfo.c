@@ -25,7 +25,7 @@
 
 #include "util/np_event.h"
 
-#include "parson/parson.h"
+#include "../ext_tools/parson/parson.h"
 
 #define  _NP_SYSINFO_MY_NODE "node"
 #define  _NP_SYSINFO_MY_NODE_TIMESTAMP "timestamp"

@@ -16,11 +16,11 @@
 #include <string.h>
 
 #include "sodium.h"
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "msgpack/cmp.h"
+#include "../ext_tools/msgpack/cmp.h"
 
 #include "np_dendrit.h"
 

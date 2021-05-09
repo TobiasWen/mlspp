@@ -14,7 +14,7 @@
 #include <netdb.h>
 #include <inttypes.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include "tree/tree.h"
 
 #include "np_constants.h"

@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "np_types.h"
 #include "neuropil_log.h"
@@ -33,7 +33,7 @@
 #include "../framework/sysinfo/np_sysinfo.h"
 #include "../framework/http/np_http.h"
 
-#include "gpio/bcm2835.h"
+#include "../ext_tools/gpio/bcm2835.h"
 #include "gpio/bcm2835.c"
 
 #include "example_helper.c"

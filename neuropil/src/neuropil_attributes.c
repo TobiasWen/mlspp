@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "msgpack/cmp.h"
+#include "../ext_tools/msgpack/cmp.h"
 
 #include "neuropil.h"
 #include "neuropil_data.h"

@@ -26,7 +26,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <assert.h>
-#include <event/ev.h>
+#include <../ext_tools/event/ev.h>
 
 #include "np_network.h"
 

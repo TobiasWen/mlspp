@@ -14,7 +14,7 @@
 #include <inttypes.h>
 
 #include "sodium.h"
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 #include "tree/tree.h"
 
 #include "np_glia.h"

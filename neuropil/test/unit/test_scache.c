@@ -7,7 +7,7 @@
 #include <inttypes.h>
 
 #include "sodium.h"
-#include "event/ev.h"
+#include "../ext_tools/event/ev.h"
 
 #include "util/np_scache.h"
 #include "neuropil_log.h"
