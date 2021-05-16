@@ -1,0 +1,101 @@
+CC ?= gcc
+CLANG ?= clang
+
+CFLAGS ?= -Werror -Wall -Wextra -funsigned-char -fwrapv -Wconversion -Wno-sign-conversion -Wmissing-format-attribute -Wpointer-arith -Wformat-nonliteral -Winit-self -Wwrite-strings -Wshadow -Wenum-compare -Wempty-body -Wparentheses -Wcast-align -Wstrict-aliasing --pedantic-errors
+CMPCFLAGS ?= -std=c89 -Wno-c99-extensions
+TESTCFLAGS ?= -std=c99 -Wno-error=deprecated-declarations -Wno-deprecated-declarations -O0
+NOFPUTESTCFLAGS ?= $(TESTCFLAGS) -DCMP_NO_FLOAT
+
+ADDRCFLAGS ?= -fsanitize=address
+MEMCFLAGS ?= -fsanitize=memory -fno-omit-frame-pointer -fno-optimize-sibling-calls
+UBCFLAGS ?= -fsanitize=undefined
+
+.PHONY: all clean test coverage
+
+all: cmptest example1 example2
+
+profile: cmpprof
+	@env LD_PRELOAD=/usr/lib/libprofiler.so CPUPROFILE=cmp.prof \
+		CPUPROFILE_FREQUENCY=1000 ./cmpprof
+	@pprof --web ./cmpprof cmp.prof
+
+test: addrtest memtest nofloattest ubtest unittest
+
+addrtest: cmpaddrtest
+	@./cmpaddrtest
+
+memtest: cmpmemtest
+	@./cmpmemtest
+
+nofloattest: cmpnofloattest
+	@./cmpnofloattest
+	@rm -f *.gcno *.gcda *.info
+
+ubtest: cmpubtest
+	@./cmpubtest
+
+unittest: cmptest
+	@./cmptest
+
+cmp.o:
+	$(CC) $(CFLAGS) $(CMPCFLAGS) -fprofile-arcs -ftest-coverage -g -I. -c cmp.c
+
+cmpprof: cmp.o
+	$(CC) $(CFLAGS) $(TESTCFLAGS) -fprofile-arcs -I. \
+		-o cmpprof cmp.o test/profile.c test/tests.c test/buf.c test/utils.c \
+		-lcmocka -lprofiler
+
+cmptest: cmp.o
+	$(CC) $(CFLAGS) $(TESTCFLAGS) -fprofile-arcs -ftest-coverage -g -I. \
+		-o cmptest cmp.o test/test.c test/tests.c test/buf.c test/utils.c -lcmocka
+
+cmpnofloattest: cmp.o
+	$(CC) $(CFLAGS) $(NOFPUTESTCFLAGS) -fprofile-arcs -ftest-coverage -g -I. \
+		-o cmpnofloattest cmp.o test/test.c test/tests.c test/buf.c test/utils.c \
+		-lcmocka
+
+clangcmp.o:
+	$(CLANG) $(CFLAGS) $(CMPCFLAGS) -fprofile-arcs -ftest-coverage -g -I. \
+		-c cmp.c -o clangcmp.o
+
+cmpaddrtest: clangcmp.o clean
+	$(CLANG) $(CFLAGS) $(TESTCFLAGS) $(ADDRCFLAGS) -I. -o cmpaddrtest cmp.c \
+		test/test.c test/tests.c test/buf.c test/utils.c -lcmocka
+
+cmpmemtest: clangcmp.o clean
+	$(CLANG) $(CFLAGS) $(TESTCFLAGS) $(MEMCFLAGS) -I. -o cmpmemtest cmp.c \
+		test/test.c test/tests.c test/buf.c test/utils.c -lcmocka
+
+cmpubtest: clangcmp.o clean
+	$(CLANG) $(CFLAGS) $(TESTCFLAGS) $(UBCFLAGS) -I. -o cmpubtest cmp.c \
+		test/test.c test/tests.c test/buf.c test/utils.c -lcmocka
+
+example1:
+	$(CC) $(CFLAGS) --std=c89 -O3 -I. -o example1 cmp.c examples/example1.c
+
+example2:
+	$(CC) $(CFLAGS) --std=c89 -O3 -I. -o example2 cmp.c examples/example2.c
+
+coverage:
+	@rm -f base_coverage.info test_coverage.info total_coverage.info
+	@rm -rf coverage
+	@lcov -q -c -i -d . -o base_coverage.info
+	@lcov -q -c -d . -o test_coverage.info
+	@lcov -q -a base_coverage.info -a test_coverage.info -o total_coverage.info
+	@lcov -q --summary total_coverage.info
+	@mkdir coverage
+	@genhtml -q -o coverage total_coverage.info
+
+clean:
+	@rm -f cmp.prof
+	@rm -f cmptest
+	@rm -f cmpaddrtest
+	@rm -f cmpmemtest
+	@rm -f cmpubtest
+	@rm -f cmpnofloattest
+	@rm -f cmpprof
+	@rm -f example1
+	@rm -f example2
+	@rm -f *.o
+	@rm -f *.gcno *.gcda *.info
+	@rm -f cmp_data.dat
